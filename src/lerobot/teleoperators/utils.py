@@ -79,6 +79,10 @@ def make_teleoperator_from_config(config: TeleoperatorConfig) -> "Teleoperator":
         from .unitree_g1 import UnitreeG1Teleoperator
 
         return UnitreeG1Teleoperator(config)
+    elif config.type == "pika":
+        from .pika import PikaTeleoperator
+
+        return PikaTeleoperator(config)
     elif config.type == "bi_so_leader":
         from .bi_so_leader import BiSOLeader
 

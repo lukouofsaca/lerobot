@@ -27,7 +27,7 @@ class PiperFollower(Robot):
         self.bus = PiperMotorsBus(config.motors)
         
         self.logs = {}
-        self._is_connected = False
+        self._is_connected = False 
         self._is_calibrated = False
         self.cameras = make_cameras_from_configs(config.cameras)
 
