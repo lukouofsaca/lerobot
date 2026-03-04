@@ -1,2 +1,2 @@
-from .config_piper_follower import PIPERFollowerConfig
-from .piper_follower import PIPERFollower
+from .config_piper_follower import PiperFollowerConfig
+from .piper_follower import PiperFollower

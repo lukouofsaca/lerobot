@@ -6,38 +6,26 @@ from functools import cached_property
 from typing import Any
 
 from lerobot.cameras.utils import make_cameras_from_configs
-from lerobot.errors import DeviceAlreadyConnectedError, DeviceNotConnectedError
-from lerobot.motors.piper.piper import PiperMotorsBus, PiperMotorsBusConfig
-
-from ..robot import Robot
-from .config_piper_follower import PIPERFollowerConfig
+from lerobot.utils.errors import DeviceAlreadyConnectedError, DeviceNotConnectedError
+from lerobot.motors.piper.piper import PiperMotorsBus
+from lerobot.robots.robot import Robot
+from .config_piper_follower import PiperFollowerConfig
 
 logger = logging.getLogger(__name__)
 
 def get_motor_names(arm: dict[str, Any]) -> list[str]:
     return [motor for arm_key, bus in arm.items() for motor in bus.motors]
 
-class PIPERFollower(Robot):
-    config_class = PIPERFollowerConfig
+class PiperFollower(Robot):
+    config_class = PiperFollowerConfig
     name = "piper_follower"
-
-    def __init__(self, config: PIPERFollowerConfig):
-        super().__init__(config)
+    def __init__(self, config: PiperFollowerConfig | None = None, **kwargs):
+        if config is None:
+            config = PiperFollowerConfig()
+        super().__init__(config=config, **kwargs)
         self.config = config
-        self.bus = PiperMotorsBus(
-            PiperMotorsBusConfig(
-                can_name="can_follower",
-                motors={
-                    "joint_1": (1, "agilex_piper"),
-                    "joint_2": (2, "agilex_piper"),
-                    "joint_3": (3, "agilex_piper"),
-                    "joint_4": (4, "agilex_piper"),
-                    "joint_5": (5, "agilex_piper"),
-                    "joint_6": (6, "agilex_piper"),
-                    "gripper": (7, "agilex_piper"),
-                }
-            )
-        )
+        self.bus = PiperMotorsBus(config.motors)
+        
         self.logs = {}
         self._is_connected = False
         self._is_calibrated = False
@@ -171,7 +159,7 @@ class PIPERFollower(Robot):
 
         # 读取图像
         for name, cam in self.cameras.items():
-            obs_dict[f"observation.images.{name}"] = cam.async_read()
+            obs_dict[name] = cam.async_read()
 
         return obs_dict
 

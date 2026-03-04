@@ -1,6 +1,3 @@
-# Code borrowed from lerobot-piper2. link:
-# https://github.com/Kane1440/lerobot_piper2/
-
 import time
 from dataclasses import dataclass
 from typing import Dict
@@ -26,7 +23,9 @@ class PiperMotorsBus:
         self.init_joint_position = [0.0, 0.0, 0.0, 0.0, 0.52, 0.0, 0.0] # [6 joints + 1 gripper] * 0.0
         self.safe_disable_position = [0.0, 0.0, 0.0, 0.0, 0.52, 0.0, 0.0]
         self.pose_factor = 1000 # 单位 0.001mm
-        self.joint_factor = 57324.840764 # 1000*180/3.14， rad -> 度（单位0.001度）
+        self.joint_factor = 57295.779513 # 1000*180/3.14， rad -> 度（单位0.001度）
+        self._is_connected = False
+        self._is_calibrated = False
 
     @property
     def motor_names(self) -> list[str]:
@@ -40,6 +39,15 @@ class PiperMotorsBus:
     def motor_indices(self) -> list[int]:
         return [idx for idx, _ in self.motors.values()]
 
+    @property
+    def is_connected(self) -> bool:
+        """检查是否已连接"""
+        return self._is_connected
+
+    @property
+    def is_calibrated(self) -> bool:
+        """检查是否已标定"""
+        return self._is_calibrated
 
     def connect(self, enable:bool) -> bool:
         '''
@@ -86,6 +94,7 @@ class PiperMotorsBus:
                 break
             time.sleep(0.5)
         resp = enable_flag
+        self._is_connected = resp if enable else False
         print(f"Returning response: {resp}")
         return resp
 
@@ -100,12 +109,14 @@ class PiperMotorsBus:
             移动到初始位置
         """
         self.write(target_joint=self.init_joint_position)
+        self._is_calibrated = True
 
     def apply_calibration_master(self):
         """
             master移动到初始位置
         """
         self.write(target_joint=self.init_joint_position)
+        self._is_calibrated = True
         
 
     def write(self, target_joint:list):
