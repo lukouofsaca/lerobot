@@ -99,6 +99,15 @@ def make_teleoperator_from_config(config: TeleoperatorConfig) -> "Teleoperator":
         from .bi_openarm_leader import BiOpenArmLeader
 
         return BiOpenArmLeader(config)
+    elif config.type == "piper_follower":
+        from .piper_leader import PiperLeader
+
+        return PiperLeader(config)
+    elif config.type == "pika":
+        from .pika import PikaTeleoperator
+
+        return PikaTeleoperator(config)
+
     else:
         try:
             return cast("Teleoperator", make_device_from_device_class(config))
