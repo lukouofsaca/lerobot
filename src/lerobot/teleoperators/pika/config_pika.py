@@ -7,7 +7,7 @@ from ..config import TeleoperatorConfig
 @dataclass
 class PikaTeleoperatorConfig(TeleoperatorConfig):
     sense_port: str = "/dev/ttyUSB0"
-    tracker_device: str = "WM0"
+    tracker_device: str = "T20"
     piper_description_dir: str = ""
     gripper_xyzrpy: list[float] = field(default_factory=lambda: [0.19, 0.0, 0.2, 0.0, 0.0, 0.0])
     home_joint_state: list[float] = field(default_factory=lambda: [0.0] * 6)

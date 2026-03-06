@@ -32,6 +32,10 @@ def make_robot_from_config(config: RobotConfig) -> Robot:
         from .omx_follower import OmxFollower
 
         return OmxFollower(config)
+    elif config.type == "piper_follower":
+        from .piper_follower import PiperFollower        
+    
+        return PiperFollower(config)
     elif config.type == "so100_follower":
         from .so_follower import SO100Follower
 
