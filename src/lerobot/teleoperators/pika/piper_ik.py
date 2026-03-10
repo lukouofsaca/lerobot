@@ -198,16 +198,32 @@ class PiperFK:
 
 
 class PiperIK:
-    def __init__(self, urdf_path: str, package_dirs: str | list[str], gripper_xyzrpy: list[float], lift: bool = False):
+    def __init__(
+        self,
+        urdf_path: str,
+        package_dirs: str | list[str],
+        gripper_xyzrpy: list[float],
+        lift: bool = False,
+        weight_position: float = 1.0,
+        weight_orientation: float = 0.1,
+        weight_regularization: float = 0.01,
+        weight_smoothing: float = 0.1,
+        max_iter: int = 50,
+        tol: float = 1e-4,
+        jump_threshold_deg: float = 30.0,
+    ):
         self.lift = lift
+        self._jump_threshold = jump_threshold_deg / 180.0 * math.pi
         np.set_printoptions(precision=5, suppress=True, linewidth=200)
 
+        # ── 机器人模型 ──
         self.robot = pin.RobotWrapper.BuildFromURDF(urdf_path, package_dirs=package_dirs)
         self.reduced_robot = self.robot.buildReducedRobot(
             list_of_joints_to_lock=["joint7", "joint8"],
             reference_configuration=np.array([0] * self.robot.model.nq),
         )
 
+        # ── 末端帧 ──
         first_matrix = create_transformation_matrix(0, 0, 0, 0, -1.57, 0)
         second_matrix = create_transformation_matrix(*gripper_xyzrpy)
         self.last_matrix = np.dot(first_matrix, second_matrix)
@@ -218,36 +234,32 @@ class PiperIK:
                 self.reduced_robot.model.getJointId("joint6"),
                 pin.SE3(
                     pin.Quaternion(q[3], q[0], q[1], q[2]),
-                    np.array(
-                        [
-                            self.last_matrix[0, 3],
-                            self.last_matrix[1, 3],
-                            self.last_matrix[2, 3],
-                        ]
-                    ),
+                    np.array([self.last_matrix[0, 3], self.last_matrix[1, 3], self.last_matrix[2, 3]]),
                 ),
                 pin.FrameType.OP_FRAME,
             )
         )
 
+        # ── 碰撞模型 ──
         self.geom_model = pin.buildGeomFromUrdf(
-            self.robot.model,
-            urdf_path,
-            pin.GeometryType.COLLISION,
-            package_dirs=package_dirs,
+            self.robot.model, urdf_path, pin.GeometryType.COLLISION, package_dirs=package_dirs,
         )
-        for i in range(4, 11):
-            for j in range(0, 4):
+        n_geom = self.geom_model.ngeoms
+        for i in range(min(4, n_geom), min(10, n_geom)):
+            for j in range(min(3, n_geom)):
                 self.geom_model.addCollisionPair(pin.CollisionPair(i, j))
         self.geometry_data = pin.GeometryData(self.geom_model)
 
-        self.init_data = np.zeros(self.reduced_robot.model.nq)
-        self.history_data = np.zeros(self.reduced_robot.model.nq)
+        # ── 状态 ──
+        nq = self.reduced_robot.model.nq
+        self.init_data = np.zeros(nq)
+        self.history_data = np.zeros(nq)
 
+        # ── CasADi 符号模型 ──
         self.cmodel = cpin.Model(self.reduced_robot.model)
         self.cdata = self.cmodel.createData()
 
-        self.cq = casadi.SX.sym("q", self.reduced_robot.model.nq, 1)
+        self.cq = casadi.SX.sym("q", nq, 1)
         self.c_tf = casadi.SX.sym("tf", 4, 4)
         cpin.framesForwardKinematics(self.cmodel, self.cdata, self.cq)
 
@@ -255,25 +267,24 @@ class PiperIK:
         self.error = casadi.Function(
             "error",
             [self.cq, self.c_tf],
-            [
-                casadi.vertcat(
-                    cpin.log6(self.cdata.oMf[self.gripper_id].inverse() * cpin.SE3(self.c_tf)).vector,
-                )
-            ],
+            [casadi.vertcat(
+                cpin.log6(self.cdata.oMf[self.gripper_id].inverse() * cpin.SE3(self.c_tf)).vector,
+            )],
         )
 
+        # ── 优化问题 ──
         self.opti = casadi.Opti()
-        self.var_q = self.opti.variable(self.reduced_robot.model.nq)
+        self.var_q = self.opti.variable(nq)
         self.param_tf = self.opti.parameter(4, 4)
+        self.param_q_prev = self.opti.parameter(nq)  # 上一帧关节角，用于平滑
 
         error_vec = self.error(self.var_q, self.param_tf)
         pos_error = error_vec[:3]
         ori_error = error_vec[3:]
 
-        weight_position = 1.0
-        weight_orientation = 0.1
-        total_cost = casadi.sumsqr(weight_position * pos_error) + casadi.sumsqr(weight_orientation * ori_error)
+        task_cost = casadi.sumsqr(weight_position * pos_error) + casadi.sumsqr(weight_orientation * ori_error)
         regularization = casadi.sumsqr(self.var_q)
+        smooth_cost = casadi.sumsqr(self.var_q - self.param_q_prev)
 
         self.opti.subject_to(
             self.opti.bounded(
@@ -282,14 +293,12 @@ class PiperIK:
                 self.reduced_robot.model.upperPositionLimit,
             )
         )
-        self.opti.minimize(20 * total_cost + 0.01 * regularization)
+        self.opti.minimize(
+            20 * task_cost + weight_regularization * regularization + weight_smoothing * smooth_cost
+        )
 
         opts = {
-            "ipopt": {
-                "print_level": 0,
-                "max_iter": 50,
-                "tol": 1e-4,
-            },
+            "ipopt": {"print_level": 0, "max_iter": max_iter, "tol": tol},
             "print_time": False,
         }
         self.opti.solver("ipopt", opts)
@@ -303,22 +312,24 @@ class PiperIK:
         gripper_q = np.array([gripper / 2.0, -gripper / 2.0], dtype=float)
         if motorstate is not None:
             self.init_data = np.asarray(motorstate, dtype=float)
+
         self.opti.set_initial(self.var_q, self.init_data)
         self.opti.set_value(self.param_tf, target_pose_4x4)
+        self.opti.set_value(self.param_q_prev, self.history_data)
 
         try:
             self.opti.solve_limited()
             sol_q = np.asarray(self.opti.value(self.var_q), dtype=float).reshape(-1)
 
-            if self.init_data is not None:
-                max_diff = float(np.max(np.abs(self.history_data - sol_q)))
-                self.init_data = sol_q.copy()
-                if max_diff > (30.0 / 180.0 * math.pi):
-                    self.init_data = np.zeros(self.reduced_robot.model.nq)
+            max_diff = float(np.max(np.abs(self.history_data - sol_q)))
+            if max_diff > self._jump_threshold:
+                # 关节跳变过大 — 重置初始值，下次从零位开始
+                self.init_data = np.zeros(self.reduced_robot.model.nq)
             else:
                 self.init_data = sol_q.copy()
 
             self.history_data = sol_q.copy()
+
             tau_ff = pin.rnea(
                 self.reduced_robot.model,
                 self.reduced_robot.data,
@@ -338,16 +349,7 @@ class PiperIK:
         return pin.computeCollisions(self.geom_model, self.geometry_data, False)
 
     def get_pose(self, q: list[float] | np.ndarray) -> list[float]:
-        index = 6 + (1 if self.lift else 0)
         q_np = np.asarray(q, dtype=float)
-        pin.forwardKinematics(self.reduced_robot.model, self.reduced_robot.data, np.concatenate([q_np], axis=0))
-        end_pose = create_transformation_matrix(
-            self.reduced_robot.data.oMi[index].translation[0],
-            self.reduced_robot.data.oMi[index].translation[1],
-            self.reduced_robot.data.oMi[index].translation[2],
-            math.atan2(self.reduced_robot.data.oMi[index].rotation[2, 1], self.reduced_robot.data.oMi[index].rotation[2, 2]),
-            math.asin(-self.reduced_robot.data.oMi[index].rotation[2, 0]),
-            math.atan2(self.reduced_robot.data.oMi[index].rotation[1, 0], self.reduced_robot.data.oMi[index].rotation[0, 0]),
-        )
-        end_pose = np.dot(end_pose, self.last_matrix)
-        return matrix_to_xyzrpy(end_pose)
+        pin.framesForwardKinematics(self.reduced_robot.model, self.reduced_robot.data, q_np)
+        oMf = self.reduced_robot.data.oMf[self.reduced_robot.model.getFrameId("ee")]
+        return matrix_to_xyzrpy(oMf.homogeneous)
