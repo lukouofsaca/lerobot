@@ -37,6 +37,9 @@ lerobot-find-joint-limits \
 
 import time
 from dataclasses import dataclass
+from pathlib import Path
+import re
+import tempfile
 
 import draccus
 import numpy as np
@@ -87,6 +90,33 @@ class FindJointLimitsConfig:
     control_loop_fps: int = 30
 
 
+def resolve_urdf_for_placo(urdf_path: str) -> str:
+    urdf_file = Path(urdf_path).resolve()
+    text = urdf_file.read_text(encoding="utf-8")
+    package_pattern = re.compile(r"package://([^/]+)/")
+    package_names = sorted(set(package_pattern.findall(text)))
+    if not package_names:
+        return str(urdf_file)
+
+    parts = urdf_file.parts
+    if "share" not in parts:
+        return str(urdf_file)
+
+    share_idx = parts.index("share")
+    if share_idx + 1 >= len(parts):
+        return str(urdf_file)
+
+    package_root = Path(*parts[: share_idx + 2]).as_posix().rstrip("/") + "/"
+    rewritten = text
+    for package_name in package_names:
+        rewritten = rewritten.replace(f"package://{package_name}/", package_root)
+
+    tmp = tempfile.NamedTemporaryFile(prefix="piper_joint_limits_", suffix=".urdf", delete=False)
+    tmp.write(rewritten.encode("utf-8"))
+    tmp.close()
+    return tmp.name
+
+
 @draccus.wrap()
 def find_joint_and_ee_bounds(cfg: FindJointLimitsConfig):
     teleop = make_teleoperator_from_config(cfg.teleop)
@@ -99,7 +129,15 @@ def find_joint_and_ee_bounds(cfg: FindJointLimitsConfig):
 
     # Initialize Kinematics
     try:
-        kinematics = RobotKinematics(cfg.urdf_path, cfg.target_frame_name)
+        urdf_for_placo = resolve_urdf_for_placo(cfg.urdf_path)
+        print(f"Using URDF for placo: {urdf_for_placo}")
+        observation_joint_keys = [name for name in robot.bus.motors.keys() if name != "gripper"]
+        kinematics_joint_names = [name.replace("_", "") for name in observation_joint_keys]
+        kinematics = RobotKinematics(
+            urdf_for_placo,
+            cfg.target_frame_name,
+            joint_names=kinematics_joint_names,
+        )
     except Exception as e:
         print(f"Error initializing kinematics: {e}")
         print("Ensure URDF path and target frame name are correct.")
@@ -132,11 +170,22 @@ def find_joint_and_ee_bounds(cfg: FindJointLimitsConfig):
 
             # 2. Read Observations
             observation = robot.get_observation()
-            joint_positions = np.array([observation[f"{key}.pos"] for key in robot.bus.motors])
+            raw_joint_positions = np.array([observation[f"{key}.pos"] for key in robot.bus.motors], dtype=float)
+            raw_kinematics_joint_positions = np.array(
+                [observation[f"{key}.pos"] for key in observation_joint_keys], dtype=float
+            )
+
+            if cfg.robot.type == "piper_follower":
+                # Piper SDK feedback is in 0.001 degree units.
+                kinematics_joint_positions = raw_kinematics_joint_positions / 1000.0
+                joint_positions = np.deg2rad(raw_joint_positions / 1000.0)
+            else:
+                kinematics_joint_positions = raw_kinematics_joint_positions
+                joint_positions = raw_joint_positions
 
             # 3. Calculate Kinematics
             # Forward kinematics to get (x, y, z) translation
-            ee_pos = kinematics.forward_kinematics(joint_positions)[:3, 3]
+            ee_pos = kinematics.forward_kinematics(kinematics_joint_positions)[:3, 3]
 
             current_time = time.perf_counter()
             elapsed = current_time - start_t

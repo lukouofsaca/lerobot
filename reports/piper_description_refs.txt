@@ -1,0 +1,269 @@
+]633;E;{   echo '# zyx (exclude logs/build/install)'\x3b   grep -RIn --exclude-dir=.git --exclude-dir=__pycache__ --exclude-dir=build --exclude-dir=install --exclude-dir=log --exclude-dir=outputs --exclude-dir=wandb 'piper_description' lerobot examples 2>/dev/null || true\x3b   grep -RIn --exclude-dir=.git --exclude-dir=__pycache__ --exclude-dir=build --exclude-dir=install --exclude-dir=log --exclude-dir=outputs --exclude-dir=wandb 'piper_description' test_pika_ik* 2>/dev/null || true\x3b   echo\x3b   echo '# pika_ros/src (source package references)'\x3b   grep -RIn --exclude-dir=.git --exclude-dir=build --exclude-dir=install --exclude-dir=log 'piper_description' /home/zhbs/pika_ros/src 2>/dev/null || true\x3b } > lerobot/reports/piper_description_refs.txt;89af4c03-501d-453b-8e36-c73cea675b6e]633;C# zyx (exclude logs/build/install)
+lerobot/scripts/fix_ik_runtime_env.sh:7:URDF_PATH="/home/zhbs/pika_ros/install/piper_description/share/piper_description/urdf/piper_description.urdf"
+lerobot/src/lerobot/teleoperators/pika/pika_teleoperator.py:115:        piper_description_dir = Path(self.config.piper_description_dir)
+lerobot/src/lerobot/teleoperators/pika/pika_teleoperator.py:116:        if not self.config.piper_description_dir:
+lerobot/src/lerobot/teleoperators/pika/pika_teleoperator.py:117:            raise ValueError("config.piper_description_dir must be set")
+lerobot/src/lerobot/teleoperators/pika/pika_teleoperator.py:118:        urdf_filename = "piper_description-lift.urdf" if self.config.lift else "piper_description.urdf"
+lerobot/src/lerobot/teleoperators/pika/pika_teleoperator.py:119:        urdf_path = piper_description_dir / "urdf" / urdf_filename
+lerobot/src/lerobot/teleoperators/pika/pika_teleoperator.py:123:        package_dirs = [str(piper_description_dir), str(piper_description_dir.parent)]
+lerobot/src/lerobot/teleoperators/pika/config_pika.py:7:def _default_piper_description_dir() -> str:
+lerobot/src/lerobot/teleoperators/pika/config_pika.py:11:        "/home/zhbs/pika_ros/install/piper_description/share/piper_description",
+lerobot/src/lerobot/teleoperators/pika/config_pika.py:12:        os.path.expanduser("~/pika_ros/install/piper_description/share/piper_description"),
+lerobot/src/lerobot/teleoperators/pika/config_pika.py:25:    piper_description_dir: str = field(default_factory=_default_piper_description_dir)
+lerobot/src/lerobot/configs/train_config_pika_piper.json:49:      "piper_description_dir": "/home/zhbs/pika_ros/install/piper_description/share/piper_description",
+lerobot/src/lerobot/configs/train_config_pika_piper.json:77:        "urdf_path": "/home/zhbs/pika_ros/install/piper_description/share/piper_description/urdf/piper_description.urdf",
+lerobot/src/lerobot/configs/pika_piper_第四阶段执行清单.md:22:  --urdf /home/zhbs/pika_ros/install/piper_description/share/piper_description/urdf/piper_description.urdf \
+lerobot/src/lerobot/configs/pika_piper_第四阶段执行清单.md:41:  --teleop.piper_description_dir=/home/zhbs/pika_ros/install/piper_description/share/piper_description \
+lerobot/src/lerobot/configs/pika_piper_第四阶段执行清单.md:42:  --urdf_path=/home/zhbs/pika_ros/install/piper_description/share/piper_description/urdf/piper_description.urdf \
+lerobot/src/lerobot/configs/pika_piper_修改指引.md:35:  --urdf /home/zhbs/pika_ros/install/piper_description/share/piper_description/urdf/piper_description.urdf \
+lerobot/src/lerobot/configs/env_config_pika_piper.json:43:      "piper_description_dir": "/home/zhbs/pika_ros/install/piper_description/share/piper_description",
+lerobot/src/lerobot/configs/env_config_pika_piper.json:85:        "urdf_path": "/home/zhbs/pika_ros/install/piper_description/share/piper_description/urdf/piper_description.urdf",
+lerobot/all_plan.md:37:| Piper URDF | `pika_ros/install/piper_description/share/piper_description/urdf/piper_description.urdf` | 6-DOF + 夹爪，含碰撞/视觉 mesh |
+lerobot/all_plan.md:475:        --teleop.piper_description_dir /path/to/piper_description \
+lerobot/all_plan.md:538:        piper_description_dir=args.piper_description_dir,
+lerobot/all_plan.md:562:        desc_dir = Path(args.piper_description_dir)
+lerobot/all_plan.md:563:        urdf_name = "piper_description-lift.urdf" if args.lift else "piper_description.urdf"
+lerobot/all_plan.md:649:    --piper-description-dir ~/pika_ros/install/piper_description/share/piper_description \
+lerobot/all_plan.md:659:    --piper-description-dir ~/pika_ros/install/piper_description/share/piper_description \
+lerobot/all_plan.md:998:    "urdf_path": "/path/to/piper_description.urdf",
+lerobot/all_plan.md:1032:    urdf_path="/home/zhbs/pika_ros/install/piper_description/share/piper_description/urdf/piper_description.urdf",
+lerobot/all_plan.md:1112:      "piper_description_dir": "/home/zhbs/pika_ros/install/piper_description/share/piper_description",
+lerobot/all_plan.md:1143:        "urdf_path": "/home/zhbs/pika_ros/install/piper_description/share/piper_description/urdf/piper_description.urdf",
+lerobot/all_plan.md:1306:    --teleop.piper_description_dir=/home/zhbs/pika_ros/install/piper_description/share/piper_description \
+lerobot/all_plan.md:1307:    --urdf_path=/home/zhbs/pika_ros/install/piper_description/share/piper_description/urdf/piper_description.urdf \
+lerobot/examples/pika_to_piper/single_piper_teleop_demo.py:16:      --piper-description-dir /home/zhbs/pika_ros/install/piper_description/share/piper_description \
+lerobot/examples/pika_to_piper/single_piper_teleop_demo.py:49:    parser.add_argument("--piper-description-dir", type=str, default=PikaTeleoperatorConfig().piper_description_dir)
+lerobot/examples/pika_to_piper/single_piper_teleop_demo.py:80:    if not args.piper_description_dir:
+lerobot/examples/pika_to_piper/single_piper_teleop_demo.py:81:        raise ValueError("未找到 piper_description_dir，请通过 --piper-description-dir 指定，或设置 PIPER_DESCRIPTION_DIR")
+lerobot/examples/pika_to_piper/single_piper_teleop_demo.py:86:        piper_description_dir=args.piper_description_dir,
+lerobot/examples/pika_to_piper/verify_piper_ik_pipeline.py:11:  --urdf /home/zhbs/pika_ros/install/piper_description/share/piper_description/urdf/piper_description.urdf \
+lerobot/examples/pika_to_piper/verify_piper_ik_pipeline.py:67:            "URDF 包根目录（例如 /home/zhbs/pika_ros/install/piper_description/share/piper_description）。"
+lerobot/examples/pika_to_piper/test.py:18:- 提供 piper_description_dir (包含 urdf/ 与 meshes/)
+lerobot/examples/pika_to_piper/test.py:49:    parser.add_argument("--piper-description-dir", type=str, required=True, help="Path to piper_description package dir")
+lerobot/examples/pika_to_piper/test.py:50:    parser.add_argument("--lift", action="store_true", help="Use piper_description-lift.urdf")
+lerobot/examples/pika_to_piper/test.py:143:def build_paths(piper_description_dir: str, lift: bool):
+lerobot/examples/pika_to_piper/test.py:144:    pdir = Path(piper_description_dir)
+lerobot/examples/pika_to_piper/test.py:146:        raise FileNotFoundError(f"piper_description_dir 不存在: {pdir}")
+lerobot/examples/pika_to_piper/test.py:148:    urdf_name = "piper_description-lift.urdf" if lift else "piper_description.urdf"
+lerobot/examples/pika_to_piper/test.py:182:    urdf_path, package_dirs = build_paths(args.piper_description_dir, args.lift)
+lerobot/examples/pika_to_piper/config_pika.py:7:def _default_piper_description_dir() -> str:
+lerobot/examples/pika_to_piper/config_pika.py:11:        "/home/zhbs/pika_ros/install/piper_description/share/piper_description",
+lerobot/examples/pika_to_piper/config_pika.py:12:        os.path.expanduser("~/pika_ros/install/piper_description/share/piper_description"),
+lerobot/examples/pika_to_piper/config_pika.py:25:    piper_description_dir: str = field(default_factory=_default_piper_description_dir)
+test_pika_ik:30:URDF_PATH = "/home/zhbs/pika_ros/install/piper_description/share/piper_description/urdf/piper_description.urdf"
+test_pika_ik:32:    "/home/zhbs/pika_ros/install/piper_description/share/piper_description",
+test_pika_ik:33:    "/home/zhbs/pika_ros/install/piper_description/share",
+test_pika_ik_orin_viz.py:15:运行方式 (需先 source ROS workspace 以使 ament_index_python 能找到 piper_description):
+test_pika_ik_orin_viz.py:52:location = "/home/zhbs/pika_ros/install/piper_description/share/piper_description"
+test_pika_ik_orin_viz.py:63:                        help="Path to piper_description package dir (需与 ament_index_python 一致)")
+test_pika_ik_orin_viz.py:64:    parser.add_argument("--lift", action="store_true", help="Use piper_description-lift.urdf")
+test_pika_ik_safe_viz.py:17:      --piper-description-dir /home/zhbs/pika_ros/install/piper_description/share/piper_description \
+test_pika_ik_safe_viz.py:48:location = "/home/zhbs/pika_ros/install/piper_description/share/piper_description"
+test_pika_ik_safe_viz.py:56:    parser.add_argument("--piper-description-dir", type=str, default=location, help="Path to piper_description package dir")
+test_pika_ik_safe_viz.py:57:    parser.add_argument("--lift", action="store_true", help="Use piper_description-lift.urdf")
+test_pika_ik_safe_viz.py:157:def build_paths(piper_description_dir: str, lift: bool):
+test_pika_ik_safe_viz.py:158:    pdir = Path(piper_description_dir)
+test_pika_ik_safe_viz.py:160:        raise FileNotFoundError(f"piper_description_dir 不存在: {pdir}")
+test_pika_ik_safe_viz.py:162:    urdf_name = "piper_description-lift.urdf" if lift else "piper_description.urdf"
+test_pika_ik_safe_viz.py:204:    urdf_path, package_dirs = build_paths(args.piper_description_dir, args.lift)
+test_pika_ik_viz.py:18:- 提供 piper_description_dir (包含 urdf/ 与 meshes/)
+test_pika_ik_viz.py:41:location = '/home/zhbs/pika_ros/install/piper_description/share/piper_description'
+test_pika_ik_viz.py:49:    parser.add_argument("--piper-description-dir", type=str, default=location, help="Path to piper_description package dir")
+test_pika_ik_viz.py:50:    parser.add_argument("--lift", action="store_true", help="Use piper_description-lift.urdf")
+test_pika_ik_viz.py:143:def build_paths(piper_description_dir: str, lift: bool):
+test_pika_ik_viz.py:144:    pdir = Path(piper_description_dir)
+test_pika_ik_viz.py:146:        raise FileNotFoundError(f"piper_description_dir 不存在: {pdir}")
+test_pika_ik_viz.py:148:    urdf_name = "piper_description-lift.urdf" if lift else "piper_description.urdf"
+test_pika_ik_viz.py:182:    urdf_path, package_dirs = build_paths(args.piper_description_dir, args.lift)
+
+# pika_ros/src (source package references)
+/home/zhbs/pika_ros/src/PikaAnyArm/piper/pika_remote_piper/scripts/test_piper_sim.py:62:        package_path = get_package_share_directory('piper_description')
+/home/zhbs/pika_ros/src/PikaAnyArm/piper/pika_remote_piper/scripts/test_piper_sim.py:64:        urdf_path = os.path.join(package_path, 'urdf', 'piper_description.urdf')
+/home/zhbs/pika_ros/src/PikaAnyArm/piper/pika_remote_piper/scripts/arm_FIK.py:68:        package_path = get_package_share_directory('piper_description')
+/home/zhbs/pika_ros/src/PikaAnyArm/piper/pika_remote_piper/scripts/arm_FIK.py:69:        urdf_path = os.path.join(package_path, 'urdf', 'piper_description' + ('-lift.urdf' if args.lift else '.urdf'))
+/home/zhbs/pika_ros/src/PikaAnyArm/piper/pika_remote_piper/scripts/arm_FIK.py:119:        package_path = get_package_share_directory('piper_description')
+/home/zhbs/pika_ros/src/PikaAnyArm/piper/pika_remote_piper/scripts/arm_FIK.py:120:        urdf_path = os.path.join(package_path, 'urdf', 'piper_description' + ('-lift.urdf' if args.lift else '.urdf'))
+/home/zhbs/pika_ros/src/PikaAnyArm/piper/piper_ros/src/piper_description/launch/display_xacro.launch.py:10:    package_name = 'piper_description'
+/home/zhbs/pika_ros/src/PikaAnyArm/piper/piper_ros/src/piper_description/launch/display_xacro.launch.py:11:    urdf_name = "piper_description.xacro"  # 使用xacro格式文件
+/home/zhbs/pika_ros/src/PikaAnyArm/piper/piper_ros/src/piper_description/package.xml:3:  <name>piper_description</name>
+/home/zhbs/pika_ros/src/PikaAnyArm/piper/piper_ros/src/piper_description/package.xml:5:  <description>The piper_description package</description>
+/home/zhbs/pika_ros/src/PikaAnyArm/piper/piper_ros/src/piper_description/config/piper_gazebo_control.yaml:1:piper_description:
+/home/zhbs/pika_ros/src/PikaAnyArm/piper/piper_ros/src/piper_description/CMakeLists.txt:2:project(piper_description)
+/home/zhbs/pika_ros/src/PikaAnyArm/piper/piper_ros/src/piper_description/urdf/piper_description_gazebo.xacro:34:          filename="package://piper_description/meshes/base_link.STL" />
+/home/zhbs/pika_ros/src/PikaAnyArm/piper/piper_ros/src/piper_description/urdf/piper_description_gazebo.xacro:48:          filename="package://piper_description/meshes/base_link.STL" />
+/home/zhbs/pika_ros/src/PikaAnyArm/piper/piper_ros/src/piper_description/urdf/piper_description_gazebo.xacro:74:          filename="package://piper_description/meshes/link1.STL" />
+/home/zhbs/pika_ros/src/PikaAnyArm/piper/piper_ros/src/piper_description/urdf/piper_description_gazebo.xacro:88:          filename="package://piper_description/meshes/link1.STL" />
+/home/zhbs/pika_ros/src/PikaAnyArm/piper/piper_ros/src/piper_description/urdf/piper_description_gazebo.xacro:132:          filename="package://piper_description/meshes/link2.STL" />
+/home/zhbs/pika_ros/src/PikaAnyArm/piper/piper_ros/src/piper_description/urdf/piper_description_gazebo.xacro:146:          filename="package://piper_description/meshes/link2.STL" />
+/home/zhbs/pika_ros/src/PikaAnyArm/piper/piper_ros/src/piper_description/urdf/piper_description_gazebo.xacro:191:          filename="package://piper_description/meshes/link3.STL" />
+/home/zhbs/pika_ros/src/PikaAnyArm/piper/piper_ros/src/piper_description/urdf/piper_description_gazebo.xacro:205:          filename="package://piper_description/meshes/link3.STL" />
+/home/zhbs/pika_ros/src/PikaAnyArm/piper/piper_ros/src/piper_description/urdf/piper_description_gazebo.xacro:250:          filename="package://piper_description/meshes/link4.STL" />
+/home/zhbs/pika_ros/src/PikaAnyArm/piper/piper_ros/src/piper_description/urdf/piper_description_gazebo.xacro:264:          filename="package://piper_description/meshes/link4.STL" />
+/home/zhbs/pika_ros/src/PikaAnyArm/piper/piper_ros/src/piper_description/urdf/piper_description_gazebo.xacro:308:          filename="package://piper_description/meshes/link5.STL" />
+/home/zhbs/pika_ros/src/PikaAnyArm/piper/piper_ros/src/piper_description/urdf/piper_description_gazebo.xacro:322:          filename="package://piper_description/meshes/link5.STL" />
+/home/zhbs/pika_ros/src/PikaAnyArm/piper/piper_ros/src/piper_description/urdf/piper_description_gazebo.xacro:366:          filename="package://piper_description/meshes/link6.STL" />
+/home/zhbs/pika_ros/src/PikaAnyArm/piper/piper_ros/src/piper_description/urdf/piper_description_gazebo.xacro:380:          filename="package://piper_description/meshes/link6.STL" />
+/home/zhbs/pika_ros/src/PikaAnyArm/piper/piper_ros/src/piper_description/urdf/piper_description_gazebo.xacro:424:          filename="package://piper_description/meshes/gripper_base.STL" />
+/home/zhbs/pika_ros/src/PikaAnyArm/piper/piper_ros/src/piper_description/urdf/piper_description_gazebo.xacro:438:          filename="package://piper_description/meshes/gripper_base.STL" />
+/home/zhbs/pika_ros/src/PikaAnyArm/piper/piper_ros/src/piper_description/urdf/piper_description_gazebo.xacro:475:          filename="package://piper_description/meshes/link7.STL" />
+/home/zhbs/pika_ros/src/PikaAnyArm/piper/piper_ros/src/piper_description/urdf/piper_description_gazebo.xacro:489:          filename="package://piper_description/meshes/link7.STL" />
+/home/zhbs/pika_ros/src/PikaAnyArm/piper/piper_ros/src/piper_description/urdf/piper_description_gazebo.xacro:533:          filename="package://piper_description/meshes/link8.STL" />
+/home/zhbs/pika_ros/src/PikaAnyArm/piper/piper_ros/src/piper_description/urdf/piper_description_gazebo.xacro:547:          filename="package://piper_description/meshes/link8.STL" />
+/home/zhbs/pika_ros/src/PikaAnyArm/piper/piper_ros/src/piper_description/urdf/piper_no_gripper_description_old.urdf:29:          filename="package://piper_description/meshes/base_link.STL" />
+/home/zhbs/pika_ros/src/PikaAnyArm/piper/piper_ros/src/piper_description/urdf/piper_no_gripper_description_old.urdf:43:          filename="package://piper_description/meshes/base_link.STL" />
+/home/zhbs/pika_ros/src/PikaAnyArm/piper/piper_ros/src/piper_description/urdf/piper_no_gripper_description_old.urdf:69:          filename="package://piper_description/meshes/link1.STL" />
+/home/zhbs/pika_ros/src/PikaAnyArm/piper/piper_ros/src/piper_description/urdf/piper_no_gripper_description_old.urdf:83:          filename="package://piper_description/meshes/link1.STL" />
+/home/zhbs/pika_ros/src/PikaAnyArm/piper/piper_ros/src/piper_description/urdf/piper_no_gripper_description_old.urdf:127:          filename="package://piper_description/meshes/link2.STL" />
+/home/zhbs/pika_ros/src/PikaAnyArm/piper/piper_ros/src/piper_description/urdf/piper_no_gripper_description_old.urdf:141:          filename="package://piper_description/meshes/link2.STL" />
+/home/zhbs/pika_ros/src/PikaAnyArm/piper/piper_ros/src/piper_description/urdf/piper_no_gripper_description_old.urdf:186:          filename="package://piper_description/meshes/link3.STL" />
+/home/zhbs/pika_ros/src/PikaAnyArm/piper/piper_ros/src/piper_description/urdf/piper_no_gripper_description_old.urdf:200:          filename="package://piper_description/meshes/link3.STL" />
+/home/zhbs/pika_ros/src/PikaAnyArm/piper/piper_ros/src/piper_description/urdf/piper_no_gripper_description_old.urdf:245:          filename="package://piper_description/meshes/link4.STL" />
+/home/zhbs/pika_ros/src/PikaAnyArm/piper/piper_ros/src/piper_description/urdf/piper_no_gripper_description_old.urdf:259:          filename="package://piper_description/meshes/link4.STL" />
+/home/zhbs/pika_ros/src/PikaAnyArm/piper/piper_ros/src/piper_description/urdf/piper_no_gripper_description_old.urdf:303:          filename="package://piper_description/meshes/link5.STL" />
+/home/zhbs/pika_ros/src/PikaAnyArm/piper/piper_ros/src/piper_description/urdf/piper_no_gripper_description_old.urdf:317:          filename="package://piper_description/meshes/link5.STL" />
+/home/zhbs/pika_ros/src/PikaAnyArm/piper/piper_ros/src/piper_description/urdf/piper_no_gripper_description_old.urdf:361:          filename="package://piper_description/meshes/link6.STL" />
+/home/zhbs/pika_ros/src/PikaAnyArm/piper/piper_ros/src/piper_description/urdf/piper_no_gripper_description_old.urdf:375:          filename="package://piper_description/meshes/link6.STL" />
+/home/zhbs/pika_ros/src/PikaAnyArm/piper/piper_ros/src/piper_description/urdf/piper_description.xacro:34:          filename="package://piper_description/meshes/base_link.STL" />
+/home/zhbs/pika_ros/src/PikaAnyArm/piper/piper_ros/src/piper_description/urdf/piper_description.xacro:48:          filename="package://piper_description/meshes/base_link.STL" />
+/home/zhbs/pika_ros/src/PikaAnyArm/piper/piper_ros/src/piper_description/urdf/piper_description.xacro:74:          filename="package://piper_description/meshes/link1.STL" />
+/home/zhbs/pika_ros/src/PikaAnyArm/piper/piper_ros/src/piper_description/urdf/piper_description.xacro:88:          filename="package://piper_description/meshes/link1.STL" />
+/home/zhbs/pika_ros/src/PikaAnyArm/piper/piper_ros/src/piper_description/urdf/piper_description.xacro:132:          filename="package://piper_description/meshes/link2.STL" />
+/home/zhbs/pika_ros/src/PikaAnyArm/piper/piper_ros/src/piper_description/urdf/piper_description.xacro:146:          filename="package://piper_description/meshes/link2.STL" />
+/home/zhbs/pika_ros/src/PikaAnyArm/piper/piper_ros/src/piper_description/urdf/piper_description.xacro:191:          filename="package://piper_description/meshes/link3.STL" />
+/home/zhbs/pika_ros/src/PikaAnyArm/piper/piper_ros/src/piper_description/urdf/piper_description.xacro:205:          filename="package://piper_description/meshes/link3.STL" />
+/home/zhbs/pika_ros/src/PikaAnyArm/piper/piper_ros/src/piper_description/urdf/piper_description.xacro:250:          filename="package://piper_description/meshes/link4.STL" />
+/home/zhbs/pika_ros/src/PikaAnyArm/piper/piper_ros/src/piper_description/urdf/piper_description.xacro:264:          filename="package://piper_description/meshes/link4.STL" />
+/home/zhbs/pika_ros/src/PikaAnyArm/piper/piper_ros/src/piper_description/urdf/piper_description.xacro:308:          filename="package://piper_description/meshes/link5.STL" />
+/home/zhbs/pika_ros/src/PikaAnyArm/piper/piper_ros/src/piper_description/urdf/piper_description.xacro:322:          filename="package://piper_description/meshes/link5.STL" />
+/home/zhbs/pika_ros/src/PikaAnyArm/piper/piper_ros/src/piper_description/urdf/piper_description.xacro:366:          filename="package://piper_description/meshes/link6.STL" />
+/home/zhbs/pika_ros/src/PikaAnyArm/piper/piper_ros/src/piper_description/urdf/piper_description.xacro:380:          filename="package://piper_description/meshes/link6.STL" />
+/home/zhbs/pika_ros/src/PikaAnyArm/piper/piper_ros/src/piper_description/urdf/piper_description.xacro:424:          filename="package://piper_description/meshes/gripper_base.STL" />
+/home/zhbs/pika_ros/src/PikaAnyArm/piper/piper_ros/src/piper_description/urdf/piper_description.xacro:438:          filename="package://piper_description/meshes/gripper_base.STL" />
+/home/zhbs/pika_ros/src/PikaAnyArm/piper/piper_ros/src/piper_description/urdf/piper_description.xacro:475:          filename="package://piper_description/meshes/link7.STL" />
+/home/zhbs/pika_ros/src/PikaAnyArm/piper/piper_ros/src/piper_description/urdf/piper_description.xacro:489:          filename="package://piper_description/meshes/link7.STL" />
+/home/zhbs/pika_ros/src/PikaAnyArm/piper/piper_ros/src/piper_description/urdf/piper_description.xacro:533:          filename="package://piper_description/meshes/link8.STL" />
+/home/zhbs/pika_ros/src/PikaAnyArm/piper/piper_ros/src/piper_description/urdf/piper_description.xacro:547:          filename="package://piper_description/meshes/link8.STL" />
+/home/zhbs/pika_ros/src/PikaAnyArm/piper/piper_ros/src/piper_description/urdf/piper_description_old.urdf:29:          filename="package://piper_description/meshes/base_link.STL" />
+/home/zhbs/pika_ros/src/PikaAnyArm/piper/piper_ros/src/piper_description/urdf/piper_description_old.urdf:43:          filename="package://piper_description/meshes/base_link.STL" />
+/home/zhbs/pika_ros/src/PikaAnyArm/piper/piper_ros/src/piper_description/urdf/piper_description_old.urdf:69:          filename="package://piper_description/meshes/link1.STL" />
+/home/zhbs/pika_ros/src/PikaAnyArm/piper/piper_ros/src/piper_description/urdf/piper_description_old.urdf:83:          filename="package://piper_description/meshes/link1.STL" />
+/home/zhbs/pika_ros/src/PikaAnyArm/piper/piper_ros/src/piper_description/urdf/piper_description_old.urdf:127:          filename="package://piper_description/meshes/link2.STL" />
+/home/zhbs/pika_ros/src/PikaAnyArm/piper/piper_ros/src/piper_description/urdf/piper_description_old.urdf:141:          filename="package://piper_description/meshes/link2.STL" />
+/home/zhbs/pika_ros/src/PikaAnyArm/piper/piper_ros/src/piper_description/urdf/piper_description_old.urdf:186:          filename="package://piper_description/meshes/link3.STL" />
+/home/zhbs/pika_ros/src/PikaAnyArm/piper/piper_ros/src/piper_description/urdf/piper_description_old.urdf:200:          filename="package://piper_description/meshes/link3.STL" />
+/home/zhbs/pika_ros/src/PikaAnyArm/piper/piper_ros/src/piper_description/urdf/piper_description_old.urdf:245:          filename="package://piper_description/meshes/link4.STL" />
+/home/zhbs/pika_ros/src/PikaAnyArm/piper/piper_ros/src/piper_description/urdf/piper_description_old.urdf:259:          filename="package://piper_description/meshes/link4.STL" />
+/home/zhbs/pika_ros/src/PikaAnyArm/piper/piper_ros/src/piper_description/urdf/piper_description_old.urdf:303:          filename="package://piper_description/meshes/link5.STL" />
+/home/zhbs/pika_ros/src/PikaAnyArm/piper/piper_ros/src/piper_description/urdf/piper_description_old.urdf:317:          filename="package://piper_description/meshes/link5.STL" />
+/home/zhbs/pika_ros/src/PikaAnyArm/piper/piper_ros/src/piper_description/urdf/piper_description_old.urdf:361:          filename="package://piper_description/meshes/link6.STL" />
+/home/zhbs/pika_ros/src/PikaAnyArm/piper/piper_ros/src/piper_description/urdf/piper_description_old.urdf:375:          filename="package://piper_description/meshes/link6.STL" />
+/home/zhbs/pika_ros/src/PikaAnyArm/piper/piper_ros/src/piper_description/urdf/piper_description_old.urdf:419:          filename="package://piper_description/meshes/gripper_base.STL" />
+/home/zhbs/pika_ros/src/PikaAnyArm/piper/piper_ros/src/piper_description/urdf/piper_description_old.urdf:433:          filename="package://piper_description/meshes/gripper_base.STL" />
+/home/zhbs/pika_ros/src/PikaAnyArm/piper/piper_ros/src/piper_description/urdf/piper_description_old.urdf:470:          filename="package://piper_description/meshes/link7.STL" />
+/home/zhbs/pika_ros/src/PikaAnyArm/piper/piper_ros/src/piper_description/urdf/piper_description_old.urdf:484:          filename="package://piper_description/meshes/link7.STL" />
+/home/zhbs/pika_ros/src/PikaAnyArm/piper/piper_ros/src/piper_description/urdf/piper_description_old.urdf:528:          filename="package://piper_description/meshes/link8.STL" />
+/home/zhbs/pika_ros/src/PikaAnyArm/piper/piper_ros/src/piper_description/urdf/piper_description_old.urdf:542:          filename="package://piper_description/meshes/link8.STL" />
+/home/zhbs/pika_ros/src/PikaAnyArm/piper/piper_ros/src/piper_description/urdf/piper_no_gripper_description.xacro:34:          filename="package://piper_description/meshes/base_link.STL" />
+/home/zhbs/pika_ros/src/PikaAnyArm/piper/piper_ros/src/piper_description/urdf/piper_no_gripper_description.xacro:48:          filename="package://piper_description/meshes/base_link.STL" />
+/home/zhbs/pika_ros/src/PikaAnyArm/piper/piper_ros/src/piper_description/urdf/piper_no_gripper_description.xacro:74:          filename="package://piper_description/meshes/link1.STL" />
+/home/zhbs/pika_ros/src/PikaAnyArm/piper/piper_ros/src/piper_description/urdf/piper_no_gripper_description.xacro:88:          filename="package://piper_description/meshes/link1.STL" />
+/home/zhbs/pika_ros/src/PikaAnyArm/piper/piper_ros/src/piper_description/urdf/piper_no_gripper_description.xacro:132:          filename="package://piper_description/meshes/link2.STL" />
+/home/zhbs/pika_ros/src/PikaAnyArm/piper/piper_ros/src/piper_description/urdf/piper_no_gripper_description.xacro:146:          filename="package://piper_description/meshes/link2.STL" />
+/home/zhbs/pika_ros/src/PikaAnyArm/piper/piper_ros/src/piper_description/urdf/piper_no_gripper_description.xacro:191:          filename="package://piper_description/meshes/link3.STL" />
+/home/zhbs/pika_ros/src/PikaAnyArm/piper/piper_ros/src/piper_description/urdf/piper_no_gripper_description.xacro:205:          filename="package://piper_description/meshes/link3.STL" />
+/home/zhbs/pika_ros/src/PikaAnyArm/piper/piper_ros/src/piper_description/urdf/piper_no_gripper_description.xacro:250:          filename="package://piper_description/meshes/link4.STL" />
+/home/zhbs/pika_ros/src/PikaAnyArm/piper/piper_ros/src/piper_description/urdf/piper_no_gripper_description.xacro:264:          filename="package://piper_description/meshes/link4.STL" />
+/home/zhbs/pika_ros/src/PikaAnyArm/piper/piper_ros/src/piper_description/urdf/piper_no_gripper_description.xacro:308:          filename="package://piper_description/meshes/link5.STL" />
+/home/zhbs/pika_ros/src/PikaAnyArm/piper/piper_ros/src/piper_description/urdf/piper_no_gripper_description.xacro:322:          filename="package://piper_description/meshes/link5.STL" />
+/home/zhbs/pika_ros/src/PikaAnyArm/piper/piper_ros/src/piper_description/urdf/piper_no_gripper_description.xacro:366:          filename="package://piper_description/meshes/link6.STL" />
+/home/zhbs/pika_ros/src/PikaAnyArm/piper/piper_ros/src/piper_description/urdf/piper_no_gripper_description.xacro:380:          filename="package://piper_description/meshes/link6.STL" />
+/home/zhbs/pika_ros/src/PikaAnyArm/piper/piper_ros/src/piper_description/urdf/piper_description.csv:2:base_link,-0.00473641164191482,2.56829134630247E-05,0.041451518036016,0,0,0,0.333893486740112,0.000254953479570424,2.06931238580746E-07,7.30912474718368E-06,0.00027202099920186,2.65131745382267E-07,0.000276534627629623,0,0,0,0,0,0,package://piper_description/meshes/base_link.STL,0.792156862745098,0.819607843137255,0.933333333333333,1,0,0,0,0,0,0,package://piper_description/meshes/base_link.STL,,base_link-1,base_link_axis,,,,0,0,0,0,0,0,,0,0,0,,,,,,,,,,,,
+/home/zhbs/pika_ros/src/PikaAnyArm/piper/piper_ros/src/piper_description/urdf/piper_description.csv:3:link1,0.000121504734057468,0.000104632162460536,-0.00438597309559853,0,0,0,0.215052383265765,0.000109639007860341,2.50631260865109E-07,-1.89352789149844E-07,9.95612262461418E-05,1.00634716976093E-08,0.000116363910317385,0,0,0,0,0,0,package://piper_description/meshes/link1.STL,0.792156862745098,0.819607843137255,0.933333333333333,1,0,0,0,0,0,0,package://piper_description/meshes/link1.STL,,link1-1,axis1,基准轴1,joint1,revolute,0,0,0.123,0,0,0,base_link,0,0,1,100,5,-2.618,2.168,,,,,,,,
+/home/zhbs/pika_ros/src/PikaAnyArm/piper/piper_ros/src/piper_description/urdf/piper_description.csv:4:link2,0.198666145229743,-0.010926924140076,0.00142121714502687,0,0,0,0.463914239236335,0.000214137415059993,7.26120579340088E-05,-9.88224861011274E-07,0.00100030277518254,-1.32818212212246E-06,0.00104417184176783,0,0,0,0,0,0,package://piper_description/meshes/link2.STL,0.792156862745098,0.819607843137255,0.933333333333333,1,0,0,0,0,0,0,package://piper_description/meshes/link2.STL,,link2-1,axis2,基准轴2,joint2,revolute,0,0,0,1.5708,-0.10095,-3.1416,link1,0,0,1,100,5,0,3.14,,,,,,,,
+/home/zhbs/pika_ros/src/PikaAnyArm/piper/piper_ros/src/piper_description/urdf/piper_description.csv:5:link3,-0.0202737662122021,-0.133914995944595,-0.000458682652737356,0,0,0,0.219942452993132,0.00018953849076141,-8.05719205057736E-06,5.10255053956334E-07,7.1424497082494E-05,8.89044974368937E-07,0.000201212938725775,0,0,0,0,0,0,package://piper_description/meshes/link3.STL,0.792156862745098,0.819607843137255,0.933333333333333,1,0,0,0,0,0,0,package://piper_description/meshes/link3.STL,,link3-1,axis3,基准轴3,joint3,revolute,0.28503,0,0,0,0,-1.759,link2,0,0,1,100,5,-2.697,0,,,,,,,,
+/home/zhbs/pika_ros/src/PikaAnyArm/piper/piper_ros/src/piper_description/urdf/piper_description.csv:6:link4,-9.66635791618542E-05,0.000876064475651083,-0.00496880904640868,0,0,0,0.131814339939458,3.96965423235175E-05,-2.32268338444837E-08,-1.14702090783249E-07,5.13319789853892E-05,9.92852686264567E-08,4.14768131680711E-05,0,0,0,0,0,0,package://piper_description/meshes/link4.STL,0.792156862745098,0.819607843137255,0.933333333333333,1,0,0,0,0,0,0,package://piper_description/meshes/link4.STL,,link4-1,axis4,基准轴4,joint4,revolute,-0.021984,-0.25075,0,1.5708,0,0,link3,0,0,1,100,5,-1.832,1.832,,,,,,,,
+/home/zhbs/pika_ros/src/PikaAnyArm/piper/piper_ros/src/piper_description/urdf/piper_description.csv:7:link5,-4.10554118924211E-05,-0.0566486692356075,-0.0037205791677906,0,0,0,0.134101341225523,4.10994130543451E-05,-2.06433983793957E-08,1.29591347668502E-10,5.27723004189144E-05,1.9140716904272E-07,4.60418752810541E-05,0,0,0,0,0,0,package://piper_description/meshes/link5.STL,0.792156862745098,0.819607843137255,0.933333333333333,1,0,0,0,0,0,0,package://piper_description/meshes/link5.STL,,link5-1,axis5,基准轴5,joint5,revolute,0,0,0,-1.5708,0,0,link4,0,0,1,100,5,-1.22,1.22,,,,,,,,
+/home/zhbs/pika_ros/src/PikaAnyArm/piper/piper_ros/src/piper_description/urdf/piper_description.csv:8:link6,-8.82590762930069E-05,9.0598378529832E-06,-0.002,0,0,0,0.007,5.43015540542155E-07,-1.98305403089247E-22,-7.2791893904596E-23,5.43015540542155E-07,-3.4146026640245E-24,1.06738869138926E-06,0,0,0,0,0,0,package://piper_description/meshes/link6.STL,0.898039215686275,0.917647058823529,0.929411764705882,1,0,0,0,0,0,0,package://piper_description/meshes/link6.STL,,link6-1,axis6,基准轴6,joint6,revolute,8.8259E-05,-0.091,0,1.5708,0,0,link5,0,0,1,100,5,-2.0944,2.0944,,,,,,,,
+/home/zhbs/pika_ros/src/PikaAnyArm/piper/piper_ros/src/piper_description/urdf/piper_description.urdf:36:          filename="package://piper_description/meshes/base_link.STL" />
+/home/zhbs/pika_ros/src/PikaAnyArm/piper/piper_ros/src/piper_description/urdf/piper_description.urdf:50:          filename="package://piper_description/meshes/base_link.STL" />
+/home/zhbs/pika_ros/src/PikaAnyArm/piper/piper_ros/src/piper_description/urdf/piper_description.urdf:77:          filename="package://piper_description/meshes/link1.STL" />
+/home/zhbs/pika_ros/src/PikaAnyArm/piper/piper_ros/src/piper_description/urdf/piper_description.urdf:91:          filename="package://piper_description/meshes/link1.STL" />
+/home/zhbs/pika_ros/src/PikaAnyArm/piper/piper_ros/src/piper_description/urdf/piper_description.urdf:135:          filename="package://piper_description/meshes/link2.STL" />
+/home/zhbs/pika_ros/src/PikaAnyArm/piper/piper_ros/src/piper_description/urdf/piper_description.urdf:149:          filename="package://piper_description/meshes/link2.STL" />
+/home/zhbs/pika_ros/src/PikaAnyArm/piper/piper_ros/src/piper_description/urdf/piper_description.urdf:194:          filename="package://piper_description/meshes/link3.STL" />
+/home/zhbs/pika_ros/src/PikaAnyArm/piper/piper_ros/src/piper_description/urdf/piper_description.urdf:208:          filename="package://piper_description/meshes/link3.STL" />
+/home/zhbs/pika_ros/src/PikaAnyArm/piper/piper_ros/src/piper_description/urdf/piper_description.urdf:253:          filename="package://piper_description/meshes/link4.STL" />
+/home/zhbs/pika_ros/src/PikaAnyArm/piper/piper_ros/src/piper_description/urdf/piper_description.urdf:267:          filename="package://piper_description/meshes/link4.STL" />
+/home/zhbs/pika_ros/src/PikaAnyArm/piper/piper_ros/src/piper_description/urdf/piper_description.urdf:311:          filename="package://piper_description/meshes/link5.STL" />
+/home/zhbs/pika_ros/src/PikaAnyArm/piper/piper_ros/src/piper_description/urdf/piper_description.urdf:325:          filename="package://piper_description/meshes/link5.STL" />
+/home/zhbs/pika_ros/src/PikaAnyArm/piper/piper_ros/src/piper_description/urdf/piper_description.urdf:369:          filename="package://piper_description/meshes/link6.STL" />
+/home/zhbs/pika_ros/src/PikaAnyArm/piper/piper_ros/src/piper_description/urdf/piper_description.urdf:383:          filename="package://piper_description/meshes/link6.STL" />
+/home/zhbs/pika_ros/src/PikaAnyArm/piper/piper_ros/src/piper_description/urdf/piper_description.urdf:427:          filename="package://piper_description/meshes/gripper_base.STL" />
+/home/zhbs/pika_ros/src/PikaAnyArm/piper/piper_ros/src/piper_description/urdf/piper_description.urdf:441:          filename="package://piper_description/meshes/gripper_base.STL" />
+/home/zhbs/pika_ros/src/PikaAnyArm/piper/piper_ros/src/piper_description/urdf/piper_description.urdf:478:          filename="package://piper_description/meshes/link7.STL" />
+/home/zhbs/pika_ros/src/PikaAnyArm/piper/piper_ros/src/piper_description/urdf/piper_description.urdf:492:          filename="package://piper_description/meshes/link7.STL" />
+/home/zhbs/pika_ros/src/PikaAnyArm/piper/piper_ros/src/piper_description/urdf/piper_description.urdf:536:          filename="package://piper_description/meshes/link8.STL" />
+/home/zhbs/pika_ros/src/PikaAnyArm/piper/piper_ros/src/piper_description/urdf/piper_description.urdf:550:          filename="package://piper_description/meshes/link8.STL" />
+/home/zhbs/pika_ros/src/PikaAnyArm/piper/piper_ros/src/piper_description/urdf/piper_no_gripper_description.csv:2:base_link,-0.00473641164191482,2.56829134630247E-05,0.041451518036016,0,0,0,0.333893486740112,0.000254953479570424,2.06931238580746E-07,7.30912474718368E-06,0.00027202099920186,2.65131745382267E-07,0.000276534627629623,0,0,0,0,0,0,package://piper_description/meshes/base_link.STL,0.792156862745098,0.819607843137255,0.933333333333333,1,0,0,0,0,0,0,package://piper_description/meshes/base_link.STL,,base_link-1,base_link_axis,,,,0,0,0,0,0,0,,0,0,0,,,,,,,,,,,,
+/home/zhbs/pika_ros/src/PikaAnyArm/piper/piper_ros/src/piper_description/urdf/piper_no_gripper_description.csv:3:link1,0.000121504734057468,0.000104632162460536,-0.00438597309559853,0,0,0,0.215052383265765,0.000109639007860341,2.50631260865109E-07,-1.89352789149844E-07,9.95612262461418E-05,1.00634716976093E-08,0.000116363910317385,0,0,0,0,0,0,package://piper_description/meshes/link1.STL,0.792156862745098,0.819607843137255,0.933333333333333,1,0,0,0,0,0,0,package://piper_description/meshes/link1.STL,,link1-1,axis1,基准轴1,joint1,revolute,0,0,0.123,0,0,0,base_link,0,0,1,100,5,-2.618,2.168,,,,,,,,
+/home/zhbs/pika_ros/src/PikaAnyArm/piper/piper_ros/src/piper_description/urdf/piper_no_gripper_description.csv:4:link2,0.198666145229743,-0.010926924140076,0.00142121714502687,0,0,0,0.463914239236335,0.000214137415059993,7.26120579340088E-05,-9.88224861011274E-07,0.00100030277518254,-1.32818212212246E-06,0.00104417184176783,0,0,0,0,0,0,package://piper_description/meshes/link2.STL,0.792156862745098,0.819607843137255,0.933333333333333,1,0,0,0,0,0,0,package://piper_description/meshes/link2.STL,,link2-1,axis2,基准轴2,joint2,revolute,0,0,0,1.5708,-0.10095,-3.1416,link1,0,0,1,100,5,0,3.14,,,,,,,,
+/home/zhbs/pika_ros/src/PikaAnyArm/piper/piper_ros/src/piper_description/urdf/piper_no_gripper_description.csv:5:link3,-0.0202737662122021,-0.133914995944595,-0.000458682652737356,0,0,0,0.219942452993132,0.00018953849076141,-8.05719205057736E-06,5.10255053956334E-07,7.1424497082494E-05,8.89044974368937E-07,0.000201212938725775,0,0,0,0,0,0,package://piper_description/meshes/link3.STL,0.792156862745098,0.819607843137255,0.933333333333333,1,0,0,0,0,0,0,package://piper_description/meshes/link3.STL,,link3-1,axis3,基准轴3,joint3,revolute,0.28503,0,0,0,0,-1.759,link2,0,0,1,100,5,-2.697,0,,,,,,,,
+/home/zhbs/pika_ros/src/PikaAnyArm/piper/piper_ros/src/piper_description/urdf/piper_no_gripper_description.csv:6:link4,-9.66635791618542E-05,0.000876064475651083,-0.00496880904640868,0,0,0,0.131814339939458,3.96965423235175E-05,-2.32268338444837E-08,-1.14702090783249E-07,5.13319789853892E-05,9.92852686264567E-08,4.14768131680711E-05,0,0,0,0,0,0,package://piper_description/meshes/link4.STL,0.792156862745098,0.819607843137255,0.933333333333333,1,0,0,0,0,0,0,package://piper_description/meshes/link4.STL,,link4-1,axis4,基准轴4,joint4,revolute,-0.021984,-0.25075,0,1.5708,0,0,link3,0,0,1,100,5,-1.832,1.832,,,,,,,,
+/home/zhbs/pika_ros/src/PikaAnyArm/piper/piper_ros/src/piper_description/urdf/piper_no_gripper_description.csv:7:link5,-4.10554118924211E-05,-0.0566486692356075,-0.0037205791677906,0,0,0,0.134101341225523,4.10994130543451E-05,-2.06433983793957E-08,1.29591347668502E-10,5.27723004189144E-05,1.9140716904272E-07,4.60418752810541E-05,0,0,0,0,0,0,package://piper_description/meshes/link5.STL,0.792156862745098,0.819607843137255,0.933333333333333,1,0,0,0,0,0,0,package://piper_description/meshes/link5.STL,,link5-1,axis5,基准轴5,joint5,revolute,0,0,0,-1.5708,0,0,link4,0,0,1,100,5,-1.22,1.22,,,,,,,,
+/home/zhbs/pika_ros/src/PikaAnyArm/piper/piper_ros/src/piper_description/urdf/piper_no_gripper_description.csv:8:link6,-8.82590762930069E-05,9.0598378529832E-06,-0.002,0,0,0,0.007,5.43015540542155E-07,-1.98305403089247E-22,-7.2791893904596E-23,5.43015540542155E-07,-3.4146026640245E-24,1.06738869138926E-06,0,0,0,0,0,0,package://piper_description/meshes/link6.STL,0.898039215686275,0.917647058823529,0.929411764705882,1,0,0,0,0,0,0,package://piper_description/meshes/link6.STL,,link6-1,axis6,基准轴6,joint6,revolute,8.8259E-05,-0.091,0,1.5708,0,0,link5,0,0,1,100,5,-2.0944,2.0944,,,,,,,,
+/home/zhbs/pika_ros/src/PikaAnyArm/piper/piper_ros/src/piper_description/urdf/piper_no_gripper_description_gazebo.xacro:34:          filename="package://piper_description/meshes/base_link.STL" />
+/home/zhbs/pika_ros/src/PikaAnyArm/piper/piper_ros/src/piper_description/urdf/piper_no_gripper_description_gazebo.xacro:48:          filename="package://piper_description/meshes/base_link.STL" />
+/home/zhbs/pika_ros/src/PikaAnyArm/piper/piper_ros/src/piper_description/urdf/piper_no_gripper_description_gazebo.xacro:74:          filename="package://piper_description/meshes/link1.STL" />
+/home/zhbs/pika_ros/src/PikaAnyArm/piper/piper_ros/src/piper_description/urdf/piper_no_gripper_description_gazebo.xacro:88:          filename="package://piper_description/meshes/link1.STL" />
+/home/zhbs/pika_ros/src/PikaAnyArm/piper/piper_ros/src/piper_description/urdf/piper_no_gripper_description_gazebo.xacro:132:          filename="package://piper_description/meshes/link2.STL" />
+/home/zhbs/pika_ros/src/PikaAnyArm/piper/piper_ros/src/piper_description/urdf/piper_no_gripper_description_gazebo.xacro:146:          filename="package://piper_description/meshes/link2.STL" />
+/home/zhbs/pika_ros/src/PikaAnyArm/piper/piper_ros/src/piper_description/urdf/piper_no_gripper_description_gazebo.xacro:191:          filename="package://piper_description/meshes/link3.STL" />
+/home/zhbs/pika_ros/src/PikaAnyArm/piper/piper_ros/src/piper_description/urdf/piper_no_gripper_description_gazebo.xacro:205:          filename="package://piper_description/meshes/link3.STL" />
+/home/zhbs/pika_ros/src/PikaAnyArm/piper/piper_ros/src/piper_description/urdf/piper_no_gripper_description_gazebo.xacro:250:          filename="package://piper_description/meshes/link4.STL" />
+/home/zhbs/pika_ros/src/PikaAnyArm/piper/piper_ros/src/piper_description/urdf/piper_no_gripper_description_gazebo.xacro:264:          filename="package://piper_description/meshes/link4.STL" />
+/home/zhbs/pika_ros/src/PikaAnyArm/piper/piper_ros/src/piper_description/urdf/piper_no_gripper_description_gazebo.xacro:308:          filename="package://piper_description/meshes/link5.STL" />
+/home/zhbs/pika_ros/src/PikaAnyArm/piper/piper_ros/src/piper_description/urdf/piper_no_gripper_description_gazebo.xacro:322:          filename="package://piper_description/meshes/link5.STL" />
+/home/zhbs/pika_ros/src/PikaAnyArm/piper/piper_ros/src/piper_description/urdf/piper_no_gripper_description_gazebo.xacro:366:          filename="package://piper_description/meshes/link6.STL" />
+/home/zhbs/pika_ros/src/PikaAnyArm/piper/piper_ros/src/piper_description/urdf/piper_no_gripper_description_gazebo.xacro:380:          filename="package://piper_description/meshes/link6.STL" />
+/home/zhbs/pika_ros/src/PikaAnyArm/piper/piper_ros/src/piper_description/urdf/piper_no_gripper_description.urdf:36:          filename="package://piper_description/meshes/base_link.STL" />
+/home/zhbs/pika_ros/src/PikaAnyArm/piper/piper_ros/src/piper_description/urdf/piper_no_gripper_description.urdf:50:          filename="package://piper_description/meshes/base_link.STL" />
+/home/zhbs/pika_ros/src/PikaAnyArm/piper/piper_ros/src/piper_description/urdf/piper_no_gripper_description.urdf:77:          filename="package://piper_description/meshes/link1.STL" />
+/home/zhbs/pika_ros/src/PikaAnyArm/piper/piper_ros/src/piper_description/urdf/piper_no_gripper_description.urdf:91:          filename="package://piper_description/meshes/link1.STL" />
+/home/zhbs/pika_ros/src/PikaAnyArm/piper/piper_ros/src/piper_description/urdf/piper_no_gripper_description.urdf:135:          filename="package://piper_description/meshes/link2.STL" />
+/home/zhbs/pika_ros/src/PikaAnyArm/piper/piper_ros/src/piper_description/urdf/piper_no_gripper_description.urdf:149:          filename="package://piper_description/meshes/link2.STL" />
+/home/zhbs/pika_ros/src/PikaAnyArm/piper/piper_ros/src/piper_description/urdf/piper_no_gripper_description.urdf:194:          filename="package://piper_description/meshes/link3.STL" />
+/home/zhbs/pika_ros/src/PikaAnyArm/piper/piper_ros/src/piper_description/urdf/piper_no_gripper_description.urdf:208:          filename="package://piper_description/meshes/link3.STL" />
+/home/zhbs/pika_ros/src/PikaAnyArm/piper/piper_ros/src/piper_description/urdf/piper_no_gripper_description.urdf:253:          filename="package://piper_description/meshes/link4.STL" />
+/home/zhbs/pika_ros/src/PikaAnyArm/piper/piper_ros/src/piper_description/urdf/piper_no_gripper_description.urdf:267:          filename="package://piper_description/meshes/link4.STL" />
+/home/zhbs/pika_ros/src/PikaAnyArm/piper/piper_ros/src/piper_description/urdf/piper_no_gripper_description.urdf:311:          filename="package://piper_description/meshes/link5.STL" />
+/home/zhbs/pika_ros/src/PikaAnyArm/piper/piper_ros/src/piper_description/urdf/piper_no_gripper_description.urdf:325:          filename="package://piper_description/meshes/link5.STL" />
+/home/zhbs/pika_ros/src/PikaAnyArm/piper/piper_ros/src/piper_description/urdf/piper_no_gripper_description.urdf:369:          filename="package://piper_description/meshes/link6.STL" />
+/home/zhbs/pika_ros/src/PikaAnyArm/piper/piper_ros/src/piper_description/urdf/piper_no_gripper_description.urdf:383:          filename="package://piper_description/meshes/link6.STL" />
+/home/zhbs/pika_ros/src/PikaAnyArm/piper/piper_ros/src/piper/launch/start_single_piper_rviz.launch.py:15:    # 获取piper_description包的路径
+/home/zhbs/pika_ros/src/PikaAnyArm/piper/piper_ros/src/piper/launch/start_single_piper_rviz.launch.py:16:    piper_description_path = os.path.join(
+/home/zhbs/pika_ros/src/PikaAnyArm/piper/piper_ros/src/piper/launch/start_single_piper_rviz.launch.py:17:        get_package_share_directory('piper_description'),
+/home/zhbs/pika_ros/src/PikaAnyArm/piper/piper_ros/src/piper/launch/start_single_piper_rviz.launch.py:37:        PythonLaunchDescriptionSource(piper_description_path)
+/home/zhbs/pika_ros/src/PikaAnyArm/piper/piper_ros/README(EN).MD:321:ros2 launch piper_description display_xacro.launch.py
+/home/zhbs/pika_ros/src/PikaAnyArm/piper/piper_ros/README(EN).MD:342:Starting >>> piper_description
+/home/zhbs/pika_ros/src/PikaAnyArm/piper/piper_ros/README(EN).MD:345:--- stderr: piper_description                                                                                            
+/home/zhbs/pika_ros/src/PikaAnyArm/piper/piper_ros/README(EN).MD:364:Failed   <<< piper_description [0.45s, exited with code 1]
+/home/zhbs/pika_ros/src/PikaAnyArm/piper/piper_ros/README(EN).MD:369:  1 package failed: piper_description
+/home/zhbs/pika_ros/src/PikaAnyArm/piper/piper_ros/README(EN).MD:371:  3 packages had stderr output: piper_control piper_description piper_msgs
+/home/zhbs/pika_ros/src/PikaAnyArm/piper/piper_ros/README(EN).MD:383:Starting >>> piper_description
+/home/zhbs/pika_ros/src/PikaAnyArm/piper/piper_ros/README(EN).MD:386:Finished <<< piper_description [0.42s]                                                                                     
+/home/zhbs/pika_ros/src/PikaAnyArm/piper/piper_ros/README(复件).md:314:ros2 launch piper_description display_xacro.launch.py
+/home/zhbs/pika_ros/src/PikaAnyArm/piper/piper_ros/README(复件).md:335:Starting >>> piper_description
+/home/zhbs/pika_ros/src/PikaAnyArm/piper/piper_ros/README(复件).md:338:--- stderr: piper_description                                                                                            
+/home/zhbs/pika_ros/src/PikaAnyArm/piper/piper_ros/README(复件).md:357:Failed   <<< piper_description [0.45s, exited with code 1]
+/home/zhbs/pika_ros/src/PikaAnyArm/piper/piper_ros/README(复件).md:362:  1 package failed: piper_description
+/home/zhbs/pika_ros/src/PikaAnyArm/piper/piper_ros/README(复件).md:364:  3 packages had stderr output: piper_control piper_description piper_msgs
+/home/zhbs/pika_ros/src/PikaAnyArm/piper/piper_ros/README(复件).md:376:Starting >>> piper_description
+/home/zhbs/pika_ros/src/PikaAnyArm/piper/piper_ros/README(复件).md:379:Finished <<< piper_description [0.42s]                                                                                     
+/home/zhbs/pika_ros/src/PikaAnyArm/piper/piper_ros/README.MD:314:ros2 launch piper_description display_xacro.launch.py
+/home/zhbs/pika_ros/src/PikaAnyArm/piper/piper_ros/README.MD:335:Starting >>> piper_description
+/home/zhbs/pika_ros/src/PikaAnyArm/piper/piper_ros/README.MD:338:--- stderr: piper_description                                                                                            
+/home/zhbs/pika_ros/src/PikaAnyArm/piper/piper_ros/README.MD:357:Failed   <<< piper_description [0.45s, exited with code 1]
+/home/zhbs/pika_ros/src/PikaAnyArm/piper/piper_ros/README.MD:362:  1 package failed: piper_description
+/home/zhbs/pika_ros/src/PikaAnyArm/piper/piper_ros/README.MD:364:  3 packages had stderr output: piper_control piper_description piper_msgs
+/home/zhbs/pika_ros/src/PikaAnyArm/piper/piper_ros/README.MD:376:Starting >>> piper_description
+/home/zhbs/pika_ros/src/PikaAnyArm/piper/piper_ros/README.MD:379:Finished <<< piper_description [0.42s]                                                                                     

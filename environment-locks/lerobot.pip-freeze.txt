@@ -1,0 +1,312 @@
+absl-py==2.3.1
+accelerate==1.12.0
+ackermann-msgs==2.0.2
+action-msgs==1.2.2
+action-tutorials-interfaces==0.20.6
+action-tutorials-py==0.20.6
+actionlib-msgs==4.9.0
+-e git+https://github.com/agilexrobotics/pika_sdk@78b47dc1f061399e1b674bc59fb801565de1d560#egg=agx_pypika
+aiohappyeyeballs==2.6.1
+aiohttp==3.13.3
+aiosignal==1.4.0
+ament-cmake-test==1.3.12
+ament-copyright==0.12.14
+ament-cppcheck==0.12.14
+ament-cpplint==0.12.14
+ament-flake8==0.12.14
+ament-index-python==1.4.0
+ament-lint==0.12.14
+ament-lint-cmake==0.12.14
+ament-package==0.14.1
+ament-pep257==0.12.14
+ament-uncrustify==0.12.14
+ament-xmllint==0.12.14
+angles==1.15.0
+annotated-types==0.7.0
+asttokens @ file:///home/conda/feedstock_root/build_artifacts/asttokens_1763409923949/work
+async-timeout==5.0.1
+attrs==25.4.0
+av==15.1.0
+builtin-interfaces==1.2.2
+camera-calibration==3.0.9
+casadi==3.7.0
+certifi==2026.1.4
+charset-normalizer==3.4.4
+click==8.3.1
+cloudpickle==3.1.2
+cmake==4.1.3
+cmeel==0.59.0
+cmeel-assimp==5.4.3.1
+cmeel-boost==1.87.0.1
+cmeel-console-bridge==1.0.2.3
+cmeel-octomap==1.10.0
+cmeel-qhull==8.0.2.1
+cmeel-tinyxml2==10.0.0
+cmeel-urdfdom==4.0.1
+cmeel-zlib==1.3.1
+coal-library==3.0.1
+colorama==0.4.6
+colored==2.3.1
+composition-interfaces==1.2.2
+control-msgs==4.8.0
+controller-manager==2.53.0
+controller-manager-msgs==2.53.0
+cv-bridge==3.2.1
+datasets==4.1.1
+decorator @ file:///home/conda/feedstock_root/build_artifacts/decorator_1740384970518/work
+deepdiff==8.6.1
+demo-nodes-py==0.20.6
+diagnostic-msgs==4.9.0
+diagnostic-updater==4.0.6
+diffusers==0.35.2
+dill==0.4.0
+domain-coordinator==0.10.0
+draccus==0.10.0
+eigenpy==3.10.3
+einops==0.8.2
+eiquadprog==1.2.9
+etils==1.13.0
+evdev==1.9.2
+example-interfaces==0.9.3
+examples-rclpy-executors==0.15.4
+examples-rclpy-minimal-action-client==0.15.4
+examples-rclpy-minimal-action-server==0.15.4
+examples-rclpy-minimal-client==0.15.4
+examples-rclpy-minimal-publisher==0.15.4
+examples-rclpy-minimal-service==0.15.4
+examples-rclpy-minimal-subscriber==0.15.4
+exceptiongroup @ file:///home/conda/feedstock_root/build_artifacts/exceptiongroup_1763918002538/work
+executing @ file:///home/conda/feedstock_root/build_artifacts/executing_1756729339227/work
+Farama-Notifications==0.0.4
+filelock==3.20.3
+frozenlist==1.8.0
+fsspec==2025.9.0
+generate-parameter-library-py==0.6.0
+geometry-msgs==4.9.0
+gitdb==4.0.12
+GitPython==3.1.46
+glfw==2.10.0
+Gooey==1.0.8.1
+grpcio==1.73.1
+-e git+https://github.com/HuggingFace/gym-hil.git@9244de53edde2b104faa8a10d0e665d3b226b485#egg=gym_hil
+gymnasium==1.2.3
+hf-xet==1.2.0
+hf_transfer==0.1.9
+hidapi==0.15.0
+huggingface-hub==0.35.3
+idna==3.11
+image-geometry==3.2.1
+ImageIO==2.37.2
+imageio-ffmpeg==0.6.0
+importlib_metadata==8.7.1
+importlib_resources==6.5.2
+inquirerpy==0.3.4
+interactive-markers==2.3.2
+ipython @ file:///home/conda/feedstock_root/build_artifacts/bld/rattler-build_ipython_1748711175/work
+ischedule==1.2.7
+jedi @ file:///home/conda/feedstock_root/build_artifacts/jedi_1733300866624/work
+Jinja2==3.1.6
+jsonlines==4.0.0
+laser-geometry==2.4.1
+launch==1.0.11
+launch-ros==0.19.12
+launch-testing==1.0.11
+launch-testing-ros==0.19.12
+launch-xml==1.0.11
+launch-yaml==1.0.11
+-e git+https://github.com/huggingface/lerobot@9a0273e7c591e324db877c55a5a32b9fa21151b7#egg=lerobot
+lifecycle-msgs==1.2.2
+logging-demo==0.20.6
+map-msgs==2.1.0
+MarkupSafe==3.0.3
+matplotlib-inline @ file:///home/conda/feedstock_root/build_artifacts/matplotlib-inline_1761214490209/work
+mergedeep==1.3.4
+meshcat @ file:///home/conda/feedstock_root/build_artifacts/meshcat-python_1736249834299/work
+message-filters==4.3.11
+mpmath==1.3.0
+mujoco==3.4.0
+multidict==6.7.1
+multiprocess==0.70.16
+mypy_extensions==1.1.0
+nav-msgs==4.9.0
+networkx==3.4.2
+numpy @ file:///home/conda/feedstock_root/build_artifacts/numpy_1747544640217/work/dist/numpy-2.2.6-cp310-cp310-linux_x86_64.whl#sha256=d6d964caeef85d00073d27cd62b46883d275b3d8162f723f0fcabbd0b3cc3f9d
+nvidia-cublas-cu12==12.6.4.1
+nvidia-cuda-cupti-cu12==12.6.80
+nvidia-cuda-nvrtc-cu12==12.6.77
+nvidia-cuda-runtime-cu12==12.6.77
+nvidia-cudnn-cu12==9.5.1.17
+nvidia-cufft-cu12==11.3.0.4
+nvidia-cufile-cu12==1.11.1.6
+nvidia-curand-cu12==10.3.7.77
+nvidia-cusolver-cu12==11.7.1.2
+nvidia-cusparse-cu12==12.5.4.2
+nvidia-cusparselt-cu12==0.6.3
+nvidia-nccl-cu12==2.26.2
+nvidia-nvjitlink-cu12==12.6.85
+nvidia-nvtx-cu12==12.6.77
+opencv-python==4.12.0.88
+opencv-python-headless==4.12.0.88
+orderly-set==5.5.0
+osrf-pycommon==2.1.6
+packaging==25.0
+pandas==2.3.3
+parso @ file:///home/conda/feedstock_root/build_artifacts/bld/rattler-build_parso_1770676243/work
+pcl-msgs==1.0.0
+pendulum-msgs==0.20.6
+pexpect @ file:///home/conda/feedstock_root/build_artifacts/pexpect_1733301927746/work
+pfzy==0.3.4
+pickleshare @ file:///home/conda/feedstock_root/build_artifacts/pickleshare_1733327343728/work
+pillow @ file:///home/conda/feedstock_root/build_artifacts/bld/rattler-build_pillow_1770794002/work
+pin==3.4.0
+piper-sdk==0.6.1
+placo==0.9.16
+platformdirs==4.5.1
+prompt_toolkit @ file:///home/conda/feedstock_root/build_artifacts/prompt-toolkit_1756321756983/work
+propcache==0.4.1
+protobuf==6.31.1
+psutil==7.2.1
+ptyprocess @ file:///home/conda/feedstock_root/build_artifacts/ptyprocess_1733302279685/work/dist/ptyprocess-0.7.0-py2.py3-none-any.whl#sha256=92c32ff62b5fd8cf325bec5ab90d7be3d2a8ca8c8a3813ff487a8d2002630d1f
+pure_eval @ file:///home/conda/feedstock_root/build_artifacts/pure_eval_1733569405015/work
+pyarrow==23.0.0
+pydantic==2.12.5
+pydantic_core==2.41.5
+pygame==2.6.1
+Pygments @ file:///home/conda/feedstock_root/build_artifacts/pygments_1750615794071/work
+pygtrie==2.5.0
+pyngrok @ file:///home/conda/feedstock_root/build_artifacts/pyngrok_1772827596433/work
+pynput==1.8.1
+PyOpenGL==3.1.10
+pyrealsense2==2.56.5.9235
+pyserial==3.5
+pysurvive==1.1.21
+python-can==4.6.1
+python-dateutil==2.9.0.post0
+python-qt-binding==1.1.3
+python-xlib==0.33
+pytz==2025.2
+PyYAML @ file:///home/conda/feedstock_root/build_artifacts/pyyaml_1770223234623/work
+pyyaml-include==1.4.1
+pyzmq @ file:///home/conda/feedstock_root/build_artifacts/bld/rattler-build_pyzmq_1771716952/work
+qt-dotgraph==2.2.4
+qt-gui==2.2.4
+qt-gui-cpp==2.2.4
+qt-gui-py-common==2.2.4
+quality-of-service-demo-py==0.20.6
+rcl-interfaces==1.2.2
+rclpy==3.3.17
+rcutils==5.1.7
+regex==2026.1.15
+requests==2.32.5
+rerun-sdk==0.26.2
+resource-retriever==3.1.3
+rhoban-cmeel-jsoncpp==1.9.4.9
+rmw-dds-common==1.6.0
+ros2action==0.18.14
+ros2bag==0.15.15
+ros2cli==0.18.14
+ros2component==0.18.14
+ros2controlcli==2.53.0
+ros2doctor==0.18.14
+ros2interface==0.18.14
+ros2launch==0.19.12
+ros2lifecycle==0.18.14
+ros2multicast==0.18.14
+ros2node==0.18.14
+ros2param==0.18.14
+ros2pkg==0.18.14
+ros2run==0.18.14
+ros2service==0.18.14
+ros2topic==0.18.14
+rosbag2-interfaces==0.15.15
+rosbag2-py==0.15.15
+rosgraph-msgs==1.2.2
+rosidl-adapter==3.1.7
+rosidl-cli==3.1.7
+rosidl-cmake==3.1.7
+rosidl-generator-c==3.1.7
+rosidl-generator-cpp==3.1.7
+rosidl-generator-py==0.14.6
+rosidl-parser==3.1.7
+rosidl-runtime-py==0.9.3
+rosidl-typesupport-c==2.0.2
+rosidl-typesupport-cpp==2.0.2
+rosidl-typesupport-fastrtps-c==2.2.3
+rosidl-typesupport-fastrtps-cpp==2.2.3
+rosidl-typesupport-introspection-c==3.1.7
+rosidl-typesupport-introspection-cpp==3.1.7
+rpyutils==0.2.2
+rqt-action==2.0.1
+rqt-bag==1.1.5
+rqt-bag-plugins==1.1.5
+rqt-console==2.0.3
+rqt-graph==1.3.1
+rqt-gui==1.1.8
+rqt-gui-py==1.1.8
+rqt-msg==1.2.0
+rqt-plot==1.1.5
+rqt-publisher==1.5.0
+rqt-py-common==1.1.8
+rqt-py-console==1.0.2
+rqt-reconfigure==1.1.2
+rqt-service-caller==1.0.5
+rqt-shell==1.0.2
+rqt-srv==1.0.3
+rqt-topic==1.5.0
+safetensors==0.7.0
+scipy @ file:///home/conda/feedstock_root/build_artifacts/scipy-split_1739790642651/work/dist/scipy-1.15.2-cp310-cp310-linux_x86_64.whl#sha256=9e52bad6c3294d1a5b04a13632118ca2157130603c6c018c2d710162b223b27e
+sensor-msgs==4.9.0
+sensor-msgs-py==4.9.0
+sentry-sdk==2.50.0
+shape-msgs==4.9.0
+six==1.17.0
+smmap==5.0.2
+sros2==0.10.7
+stack_data @ file:///home/conda/feedstock_root/build_artifacts/stack_data_1733569443808/work
+statistics-msgs==1.2.2
+std-msgs==4.9.0
+std-srvs==4.9.0
+stereo-msgs==4.9.0
+sympy==1.14.0
+teleop-twist-keyboard==2.4.1
+termcolor==3.3.0
+tf-transformations==1.1.0
+tf2-geometry-msgs==0.25.16
+tf2-kdl==0.25.16
+tf2-msgs==0.25.16
+tf2-py==0.25.16
+tf2-ros-py==0.25.16
+tf2-sensor-msgs==0.25.16
+tf2-tools==0.25.16
+theora-image-transport==2.5.4
+tokenizers==0.22.2
+toml==0.10.2
+tomli==2.4.0
+topic-monitor==0.20.6
+torch==2.7.1
+torchcodec==0.5
+torchvision==0.22.1
+tornado @ file:///home/conda/feedstock_root/build_artifacts/tornado_1765836373149/work
+tqdm==4.67.1
+traitlets @ file:///home/conda/feedstock_root/build_artifacts/traitlets_1733367359838/work
+trajectory-msgs==4.9.0
+transformers==4.57.6
+transforms3d==0.4.2
+triton==3.3.1
+turtlesim==1.4.3
+typing-inspect==0.9.0
+typing-inspection==0.4.2
+typing_extensions @ file:///home/conda/feedstock_root/build_artifacts/bld/rattler-build_typing_extensions_1756220668/work
+tzdata==2025.3
+u-msgpack-python @ file:///home/conda/feedstock_root/build_artifacts/u-msgpack-python_1734904117159/work
+unique-identifier-msgs==2.2.1
+urllib3==2.6.3
+visualization-msgs==4.9.0
+wandb==0.24.0
+wcwidth @ file:///home/conda/feedstock_root/build_artifacts/wcwidth_1770634525285/work
+wrapt==1.17.3
+wxPython==4.2.5
+xxhash==3.6.0
+yarl==1.22.0
+zipp==3.23.0
+
