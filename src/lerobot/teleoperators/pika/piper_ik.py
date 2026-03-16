@@ -205,8 +205,9 @@ class PiperIK:
         gripper_xyzrpy: list[float],
         lift: bool = False,
         weight_position: float = 1.0,
-        weight_orientation: float = 0.1,
-        weight_regularization: float = 0.01,
+        # 下一步：调整这个超参数
+        weight_orientation: float = 0.05,
+        weight_regularization: float = 0.03,
         weight_smoothing: float = 0.1,
         max_iter: int = 50,
         tol: float = 1e-4,
@@ -303,6 +304,15 @@ class PiperIK:
         }
         self.opti.solver("ipopt", opts)
 
+    def sync_state(self, q: list[float] | np.ndarray) -> None:
+        q_np = np.asarray(q, dtype=float).reshape(-1)
+        expected_nq = self.reduced_robot.model.nq
+        if q_np.shape[0] != expected_nq:
+            raise ValueError(f"IK state length mismatch: expected {expected_nq}, got {q_np.shape[0]}")
+
+        self.init_data = q_np.copy()
+        self.history_data = q_np.copy()
+
     def ik_fun(
         self,
         target_pose_4x4: np.ndarray,
@@ -311,20 +321,21 @@ class PiperIK:
     ) -> tuple[np.ndarray | None, np.ndarray | str, bool]:
         gripper_q = np.array([gripper / 2.0, -gripper / 2.0], dtype=float)
         if motorstate is not None:
-            self.init_data = np.asarray(motorstate, dtype=float)
+            self.sync_state(motorstate)
+
+        q_reference = self.history_data.copy()
 
         self.opti.set_initial(self.var_q, self.init_data)
         self.opti.set_value(self.param_tf, target_pose_4x4)
-        self.opti.set_value(self.param_q_prev, self.history_data)
+        self.opti.set_value(self.param_q_prev, q_reference)
 
         try:
             self.opti.solve_limited()
             sol_q = np.asarray(self.opti.value(self.var_q), dtype=float).reshape(-1)
 
-            max_diff = float(np.max(np.abs(self.history_data - sol_q)))
+            max_diff = float(np.max(np.abs(q_reference - sol_q)))
             if max_diff > self._jump_threshold:
-                # 关节跳变过大 — 重置初始值，下次从零位开始
-                self.init_data = np.zeros(self.reduced_robot.model.nq)
+                self.init_data = q_reference.copy()
             else:
                 self.init_data = sol_q.copy()
 

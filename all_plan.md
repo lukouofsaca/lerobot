@@ -116,6 +116,8 @@ cd ~/pika_ros/scripts && bash find_all_can_port.sh
 ```
 
 记录输出的 USB 端口地址（如 `1-1.4:1.0`）。
+> 
+""预期配置单个can模块，检测到接口 can0，对应的usb地址为 1-14.1.4:1.0""
 
 **步骤 2：激活并绑定 CAN 接口**
 
@@ -168,14 +170,14 @@ sudo udevadm control --reload-rules && sudo udevadm trigger
 
 | 设备 | 绑定路径 | 用途 |
 |------|----------|------|
-| Pika Sense | `/dev/ttyUSB80` | PikaTeleoperatorConfig.sense_port |
-| Pika Gripper | `/dev/ttyUSB81` | 备用，本方案暂不直接使用 |
+| Pika Sense | `/dev/ttyUSB81` | PikaTeleoperatorConfig.sense_port |
+| Pika Gripper | `/dev/ttyUSB82` | 备用，本方案暂不直接使用 |
 
 **步骤 3：验证**
 
 ```bash
 ls -la /dev/ttyUSB80 /dev/ttyUSB81  # 应存在符号链接
-python -c "from pika import sense; s = sense(port='/dev/ttyUSB80'); s.connect(); print('OK'); s.disconnect()"
+python -c "from pika import sense; s = sense(port='/dev/ttyUSB81'); s.connect(); print('OK'); s.disconnect()"
 ```
 
 ### 1.4 RealSense 相机绑定
@@ -239,7 +241,7 @@ echo "=== 设备就绪 ==="
 
 ```bash
 # 首次使用需设置实际 USB 地址
-export CAN_USB_ADDR="1-1.4:1.0"  # 替换为 find_all_can_port.sh 输出的地址
+export CAN_USB_ADDR="1-14.1.4:1.0"  # 替换为 find_all_can_port.sh 输出的地址
 bash ~/pika_ros/scripts/setup_pika_piper.sh
 ```
 

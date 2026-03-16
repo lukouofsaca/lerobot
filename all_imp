@@ -1,0 +1,16 @@
+设备绑定后的使用方法:
+1. 每个设备都有固定的ttyUSB和video设备路径
+   设备 1 sense: 
+     *串口端口号                /dev/ttyUSB81
+     *鱼眼相机索引              video81
+     *双目深度相机序列号        135122075071
+   设备 2 gripper: 
+     *串口端口号                /dev/ttyUSB82
+     *鱼眼相机索引              video82
+     *双目深度相机序列号        230322271133
+
+2. 在代码中使用这些固定路径:
+   from pika import sense
+   my_device = sense('/dev/ttyUSB81')  # 使用第1个设备
+   my_device.set_fisheye_camera_index(81)  # 使用第1个设备的鱼眼相机
+   my_device.set_realsense_serial_number(230322270988)  # 使用序列号为230322270988的Realsense设备

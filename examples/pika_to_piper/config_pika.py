@@ -29,7 +29,7 @@ class PikaTeleoperatorConfig(TeleoperatorConfig):
     filter_beta_pos: float = 1.0
     filter_beta_rot: float = 0.5
     ik_weight_position: float = 1.0
-    ik_weight_orientation: float = 0.2
+    ik_weight_orientation: float = 0.15
     ik_weight_regularization: float = 0.005
     ik_weight_smoothing: float = 0.05
     ik_jump_threshold_deg: float = 30.0

@@ -17,6 +17,7 @@ from .piper_ik import (
     euler_from_quaternion,
     matrix_to_xyzrpy,
 )
+from .safety_guard import PikaSafetyGuard
 
 logger = logging.getLogger(__name__)
 
@@ -38,11 +39,16 @@ class PikaTeleoperator(Teleoperator):
 
         self.filters: list[OneEuroFilter] = []
         self.filters_reset = True
+        self.safety_guard: PikaSafetyGuard | None = None
 
         self._is_connected = False
         self._is_calibrated = False
 
         self.last_valid_action = {**{f"joint_{i}.pos": 0.0 for i in range(1, 7)}, "gripper.pos": 0.0}
+        self._max_joint_step_rad = np.deg2rad(float(self.config.max_joint_step_deg))
+
+        if self.config.enable_safety_guard:
+            self.safety_guard = PikaSafetyGuard.from_teleoperator_config(self.config)
 
     @property
     def action_features(self) -> dict[str, type]:
@@ -104,6 +110,11 @@ class PikaTeleoperator(Teleoperator):
             package_dirs=package_dirs,
             gripper_xyzrpy=self.config.gripper_xyzrpy,
             lift=self.config.lift,
+            weight_position=self.config.ik_weight_position,
+            weight_orientation=self.config.ik_weight_orientation,
+            weight_regularization=self.config.ik_weight_regularization,
+            weight_smoothing=self.config.ik_weight_smoothing,
+            jump_threshold_deg=self.config.ik_jump_threshold_deg,
         )
 
         t0 = time.time()
@@ -163,6 +174,13 @@ class PikaTeleoperator(Teleoperator):
         self.initial_arm_matrix = arm_matrix
         self.filters_reset = True
         self._is_calibrated = True
+        self._update_last_valid_action(home_q, self.last_valid_action["gripper.pos"])
+
+        if self.ik_solver is not None:
+            self.ik_solver.sync_state(home_q)
+
+        if self.safety_guard is not None:
+            self.safety_guard.reset()
 
     @check_if_not_connected
     def configure(self) -> None:
@@ -193,6 +211,65 @@ class PikaTeleoperator(Teleoperator):
 
         return create_transformation_matrix(*pose_xyzrpy)
 
+    def _read_enable_signal(self) -> bool:
+        if self.sense_device is None:
+            return False
+
+        if not self.config.use_command_state_enable:
+            return True
+
+        try:
+            return bool(self.sense_device.get_command_state())
+        except Exception:
+            return True
+
+    def _get_gripper_encoder_rad(self) -> float:
+        if self.sense_device is None:
+            return 0.0
+
+        try:
+            encoder_data = self.sense_device.get_encoder_data()
+            return float(encoder_data.get("rad", 0.0))
+        except Exception:
+            return 0.0
+
+    def _update_last_gripper_action(self, gripper_rad: float) -> None:
+        self.last_valid_action["gripper.pos"] = float(gripper_rad)
+
+    def _update_last_valid_action(self, joint_positions: np.ndarray, gripper_rad: float) -> None:
+        self.last_valid_action = {
+            "joint_1.pos": float(joint_positions[0]),
+            "joint_2.pos": float(joint_positions[1]),
+            "joint_3.pos": float(joint_positions[2]),
+            "joint_4.pos": float(joint_positions[3]),
+            "joint_5.pos": float(joint_positions[4]),
+            "joint_6.pos": float(joint_positions[5]),
+            "gripper.pos": float(gripper_rad),
+        }
+
+    def _get_last_commanded_joint_positions(self) -> np.ndarray:
+        return np.asarray(
+            [self.last_valid_action[f"joint_{i}.pos"] for i in range(1, 7)],
+            dtype=float,
+        )
+
+    def _shape_joint_command(
+        self,
+        candidate_q: np.ndarray,
+        reference_q: np.ndarray,
+    ) -> tuple[np.ndarray, bool]:
+        candidate_q = np.asarray(candidate_q, dtype=float).reshape(-1)
+        reference_q = np.asarray(reference_q, dtype=float).reshape(-1)
+
+        if self._max_joint_step_rad <= 0.0:
+            return candidate_q.copy(), False
+
+        dq = candidate_q - reference_q
+        dq_clipped = np.clip(dq, -self._max_joint_step_rad, self._max_joint_step_rad)
+        shaped_q = reference_q + dq_clipped
+        clipped = bool(np.any(np.abs(dq - dq_clipped) > 1e-9))
+        return shaped_q, clipped
+
     @check_if_not_connected
     def get_action(self) -> dict[str, float]:
         if self.ik_solver is None:
@@ -201,30 +278,61 @@ class PikaTeleoperator(Teleoperator):
         if not self._is_calibrated:
             self.calibrate()
 
+        guard = self.safety_guard
+        gripper_rad = self._get_gripper_encoder_rad()
+        self._update_last_gripper_action(gripper_rad)
+
         current_pika_matrix = self._get_tracker_matrix()
         if current_pika_matrix is None:
+            if guard is not None:
+                guard.handle_pose_missing()
             return self.last_valid_action.copy()
+
+        if guard is not None:
+            guard.note_pose_available()
+
+            rising_edge = guard.update_enable_state(self._read_enable_signal())
+            if rising_edge and self.fk_solver is not None:
+                safe_q = guard.last_safe_q
+                if safe_q is None:
+                    safe_q = np.asarray(self.config.home_joint_state, dtype=float)
+                self.initial_pika_matrix = current_pika_matrix
+                self.initial_arm_matrix = create_transformation_matrix(*self.fk_solver.get_pose(safe_q))
+                self.filters_reset = True
+                self.ik_solver.sync_state(safe_q)
+
+            if not guard.enabled:
+                return self.last_valid_action.copy()
 
         target_matrix = self.initial_arm_matrix @ np.dot(np.linalg.inv(self.initial_pika_matrix), current_pika_matrix)
         filtered_target_matrix = self._filter_pose(target_matrix)
 
         gripper_mm = self.sense_device.get_gripper_distance()
         gripper_m = float(gripper_mm) / 1000.0
-        sol_q, _, valid = self.ik_solver.ik_fun(filtered_target_matrix, gripper=gripper_m)
+        solver_reference_q = self._get_last_commanded_joint_positions()
+        if guard is not None and guard.last_safe_q is not None:
+            solver_reference_q = guard.last_safe_q
 
-        encoder_data = self.sense_device.get_encoder_data()
-        encoder_rad = float(encoder_data.get("rad", 0.0))
+        sol_q, _, valid = self.ik_solver.ik_fun(
+            filtered_target_matrix,
+            gripper=gripper_m,
+            motorstate=solver_reference_q,
+        )
 
+        shaped_q = None
         if valid and sol_q is not None:
-            self.last_valid_action = {
-                "joint_1.pos": float(sol_q[0]),
-                "joint_2.pos": float(sol_q[1]),
-                "joint_3.pos": float(sol_q[2]),
-                "joint_4.pos": float(sol_q[3]),
-                "joint_5.pos": float(sol_q[4]),
-                "joint_6.pos": float(sol_q[5]),
-                "gripper.pos": encoder_rad,
-            }
+            shaped_q, _ = self._shape_joint_command(sol_q, solver_reference_q)
+
+        if guard is not None:
+            safe_q, status = guard.apply_ik_result(shaped_q, valid)
+            if status == "ik_invalid_repeated":
+                guard.force_disable()
+            if safe_q is not None:
+                self._update_last_valid_action(safe_q, gripper_rad)
+                self.ik_solver.sync_state(safe_q)
+        elif shaped_q is not None:
+            self._update_last_valid_action(shaped_q, gripper_rad)
+            self.ik_solver.sync_state(shaped_q)
 
         return self.last_valid_action.copy()
 
@@ -243,3 +351,5 @@ class PikaTeleoperator(Teleoperator):
         self.initial_arm_matrix = None
         self._is_calibrated = False
         self._is_connected = False
+        if self.safety_guard is not None:
+            self.safety_guard.reset()
