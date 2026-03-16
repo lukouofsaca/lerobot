@@ -55,6 +55,7 @@ from lerobot.processor.converters import identity_transition
 from lerobot.robots import (  # noqa: F401
     RobotConfig,
     make_robot_from_config,
+    piper_follower,
     so_follower,
 )
 from lerobot.robots.robot import Robot
@@ -69,6 +70,7 @@ from lerobot.teleoperators import (
     gamepad,  # noqa: F401
     keyboard,  # noqa: F401
     make_teleoperator_from_config,
+    pika,  # noqa: F401
     so_leader,  # noqa: F401
 )
 from lerobot.teleoperators.teleoperator import Teleoperator
@@ -396,6 +398,7 @@ def make_processors(
     # Full processor pipeline for real robot environment
     # Get robot and motor information for kinematics
     motor_names = list(env.robot.bus.motors.keys())
+    kinematics_joint_names = [name for name in motor_names if name != "gripper"]
 
     # Set up kinematics solver if inverse kinematics is configured
     kinematics_solver = None
@@ -403,7 +406,7 @@ def make_processors(
         kinematics_solver = RobotKinematics(
             urdf_path=cfg.processor.inverse_kinematics.urdf_path,
             target_frame_name=cfg.processor.inverse_kinematics.target_frame_name,
-            joint_names=motor_names,
+            joint_names=kinematics_joint_names,
         )
 
     env_pipeline_steps = [VanillaObservationProcessorStep()]

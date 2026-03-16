@@ -57,15 +57,19 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--disable-safety-guard", action="store_true", help="关闭 safety guard")
     parser.add_argument("--use-command-state-enable", action="store_true", help="用 command_state 作为 enable 信号")
     parser.add_argument("--pose-timeout-sec", type=float, default=0.25)
-    parser.add_argument("--max-joint-step-deg", type=float, default=8.0, help="每帧关节最大步长，始终生效")
+    parser.add_argument("--max-joint-step-deg", type=float, default=5.0, help="每帧关节最大步长，始终生效")
     parser.add_argument("--max-consecutive-ik-failures", type=int, default=8)
     parser.add_argument("--no-force-disable-on-pose-stale", action="store_true")
     parser.add_argument("--ik-weight-position", type=float, default=1.0, help="IK 位置误差权重")
     parser.add_argument("--ik-weight-orientation", type=float, default=0.2, help="IK 姿态误差权重，增大可提升末端两节响应")
     parser.add_argument("--ik-weight-regularization", type=float, default=0.005, help="IK 零位正则权重，减小可提升折叠位形可达性")
-    parser.add_argument("--ik-weight-smoothing", type=float, default=0.05, help="IK 平滑权重，过大时末端关节会发钝")
+    parser.add_argument("--ik-weight-smoothing", type=float, default=0.1, help="IK 平滑权重，过大时末端关节会发钝")
     parser.add_argument("--ik-jump-threshold-deg", type=float, default=30.0, help="IK 解跳变判定阈值")
-    parser.add_argument("--filter-beta-rot", type=float, default=0.5, help="姿态滤波灵敏度，减小更稳，增大更跟手")
+    parser.add_argument("--filter-beta-rot", type=float, default=0.3, help="姿态滤波灵敏度，减小更稳，增大更跟手")
+    parser.add_argument(
+        "--output-mode", type=str, default="joint", choices=["joint", "ee_delta"],
+        help="输出格式：joint=关节角度（默认）；ee_delta=末端位置增量（HIL-SERL 模式）",
+    )
 
     return parser.parse_args()
 
@@ -92,6 +96,7 @@ def main() -> None:
         ik_weight_smoothing=args.ik_weight_smoothing,
         ik_jump_threshold_deg=args.ik_jump_threshold_deg,
         filter_beta_rot=args.filter_beta_rot,
+        output_mode=args.output_mode,
     )
     teleop = PikaTeleoperator(teleop_cfg)
 

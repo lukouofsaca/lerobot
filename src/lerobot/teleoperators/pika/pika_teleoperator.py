@@ -1,13 +1,18 @@
 import logging
 import math
+import os
+import sys
 import time
 from pathlib import Path
+from queue import Queue
+from typing import Any
 
 import numpy as np
 
 from lerobot.utils.decorators import check_if_already_connected, check_if_not_connected
 
 from ..teleoperator import Teleoperator
+from ..utils import TeleopEvents
 from .config_pika import PikaTeleoperatorConfig
 from .piper_ik import (
     OneEuroFilter,
@@ -50,8 +55,25 @@ class PikaTeleoperator(Teleoperator):
         if self.config.enable_safety_guard:
             self.safety_guard = PikaSafetyGuard.from_teleoperator_config(self.config)
 
+        # ── HIL-SERL 事件状态 ──
+        self._intervention_active: bool = False
+        self._space_pressed: bool = False
+        self._episode_success: bool = False
+        self._episode_terminate: bool = False
+        self._rerecord: bool = False
+        self._keyboard_listener = None
+        self._key_event_queue: Queue = Queue()
+
+        # ── EE-delta 模式状态 ──
+        self._prev_filtered_ee_pos: np.ndarray | None = None
+        self._last_ee_delta_action: dict[str, float] = {
+            "delta_x": 0.0, "delta_y": 0.0, "delta_z": 0.0, "gripper": 0.0
+        }
+
     @property
     def action_features(self) -> dict[str, type]:
+        if self.config.output_mode == "ee_delta":
+            return {"delta_x": float, "delta_y": float, "delta_z": float, "gripper": float}
         return {**{f"joint_{i}.pos": float for i in range(1, 7)}, "gripper.pos": float}
 
     @property
@@ -131,6 +153,7 @@ class PikaTeleoperator(Teleoperator):
         if calibrate:
             self.calibrate()
 
+        self._start_keyboard_listener()
         logger.info(f"{self} connected")
 
     def _get_tracker_matrix(self) -> np.ndarray | None:
@@ -178,6 +201,8 @@ class PikaTeleoperator(Teleoperator):
 
         if self.ik_solver is not None:
             self.ik_solver.sync_state(home_q)
+
+        self._prev_filtered_ee_pos = None
 
         if self.safety_guard is not None:
             self.safety_guard.reset()
@@ -272,9 +297,6 @@ class PikaTeleoperator(Teleoperator):
 
     @check_if_not_connected
     def get_action(self) -> dict[str, float]:
-        if self.ik_solver is None:
-            raise RuntimeError("IK solver is not initialized")
-
         if not self._is_calibrated:
             self.calibrate()
 
@@ -286,6 +308,8 @@ class PikaTeleoperator(Teleoperator):
         if current_pika_matrix is None:
             if guard is not None:
                 guard.handle_pose_missing()
+            if self.config.output_mode == "ee_delta":
+                return self._last_ee_delta_action.copy()
             return self.last_valid_action.copy()
 
         if guard is not None:
@@ -299,14 +323,27 @@ class PikaTeleoperator(Teleoperator):
                 self.initial_pika_matrix = current_pika_matrix
                 self.initial_arm_matrix = create_transformation_matrix(*self.fk_solver.get_pose(safe_q))
                 self.filters_reset = True
-                self.ik_solver.sync_state(safe_q)
+                self._prev_filtered_ee_pos = None
+                if self.ik_solver is not None:
+                    self.ik_solver.sync_state(safe_q)
 
             if not guard.enabled:
+                if self.config.output_mode == "ee_delta":
+                    return self._last_ee_delta_action.copy()
                 return self.last_valid_action.copy()
 
         target_matrix = self.initial_arm_matrix @ np.dot(np.linalg.inv(self.initial_pika_matrix), current_pika_matrix)
         filtered_target_matrix = self._filter_pose(target_matrix)
 
+        if self.config.output_mode == "ee_delta":
+            return self._get_ee_delta_action(filtered_target_matrix, gripper_rad)
+        return self._get_joint_action(filtered_target_matrix, gripper_rad)
+
+    def _get_joint_action(self, filtered_target_matrix: np.ndarray, gripper_rad: float) -> dict[str, float]:
+        if self.ik_solver is None:
+            raise RuntimeError("IK solver is not initialized")
+
+        guard = self.safety_guard
         gripper_mm = self.sense_device.get_gripper_distance()
         gripper_m = float(gripper_mm) / 1000.0
         solver_reference_q = self._get_last_commanded_joint_positions()
@@ -336,11 +373,139 @@ class PikaTeleoperator(Teleoperator):
 
         return self.last_valid_action.copy()
 
+    def _get_ee_delta_action(self, filtered_target_matrix: np.ndarray, gripper_rad: float) -> dict[str, float]:
+        current_pos = filtered_target_matrix[:3, 3].copy()
+
+        if self._prev_filtered_ee_pos is None:
+            delta = np.zeros(3)
+        else:
+            delta = current_pos - self._prev_filtered_ee_pos
+        self._prev_filtered_ee_pos = current_pos
+
+        gripper_mm = 0.0
+        try:
+            if self.sense_device is not None:
+                raw = self.sense_device.get_gripper_distance()
+                if raw is not None:
+                    gripper_mm = float(raw)
+        except Exception:
+            pass
+        gripper_norm = float(np.clip(gripper_mm / 90.0, 0.0, 1.0))
+
+        self._last_ee_delta_action = {
+            "delta_x": float(delta[0]),
+            "delta_y": float(delta[1]),
+            "delta_z": float(delta[2]),
+            "gripper": gripper_norm,
+        }
+        return self._last_ee_delta_action.copy()
+
+    def _start_keyboard_listener(self) -> None:
+        """启动 pynput 键盘监听线程（无 DISPLAY 或未安装时静默跳过）。"""
+        try:
+            if ("DISPLAY" not in os.environ) and ("linux" in sys.platform):
+                logger.info("No DISPLAY set, keyboard listener disabled.")
+                return
+            from pynput import keyboard as _kbd
+
+            def on_press(key):
+                self._key_event_queue.put(("press", key))
+
+            def on_release(key):
+                self._key_event_queue.put(("release", key))
+
+            listener = _kbd.Listener(on_press=on_press, on_release=on_release)
+            listener.daemon = True
+            listener.start()
+            self._keyboard_listener = listener
+            logger.info(
+                "Keyboard listener started: "
+                "Space=toggle intervention | s=success | q/esc=quit | r=rerecord"
+            )
+        except ImportError:
+            logger.info("pynput not available; keyboard events disabled. pip install pynput")
+        except Exception as exc:
+            logger.warning(f"Could not start keyboard listener: {exc}")
+
+    def _drain_key_events(self) -> None:
+        """将队列中的键盘事件消费到内部状态。"""
+        try:
+            from pynput import keyboard as _kbd
+        except ImportError:
+            return
+
+        while not self._key_event_queue.empty():
+            try:
+                event_type, key = self._key_event_queue.get_nowait()
+            except Exception:
+                break
+
+            if event_type == "press":
+                if key == _kbd.Key.space and not self._space_pressed:
+                    self._space_pressed = True
+                    self._intervention_active = not self._intervention_active
+                    logger.debug(f"Intervention toggled → {self._intervention_active}")
+                elif key == _kbd.Key.esc:
+                    self._episode_success = False
+                    self._episode_terminate = True
+                    logger.info("[TeleopEvent] esc (failure + terminate)")
+                elif hasattr(key, "char") and key.char is not None:
+                    char = key.char.lower()
+                    if char == "s":
+                        self._episode_success = True
+                        self._episode_terminate = True
+                        logger.info("[TeleopEvent] success + terminate")
+                    elif char == "q":
+                        self._episode_success = False
+                        self._episode_terminate = True
+                        logger.info("[TeleopEvent] quit (failure + terminate)")
+                    elif char == "r":
+                        self._rerecord = True
+                        self._episode_terminate = True
+                        logger.info("[TeleopEvent] rerecord + terminate")
+            elif event_type == "release" and key == _kbd.Key.space:
+                self._space_pressed = False
+
+    def get_teleop_events(self) -> dict[str, Any]:
+        """HasTeleopEvents 协议实现。
+
+        按键映射:
+            Space   — 切换 intervention（按下激活，再按关闭）
+            s       — 标记成功并终止 episode
+            q / Esc — 标记失败并终止 episode
+            r       — 标记重录并终止 episode
+            Pika 双击夹爪 — 通过 command_state 作为附加 intervention 信号
+        """
+        self._drain_key_events()
+
+        pika_intervention = False
+        if self.sense_device is not None:
+            try:
+                pika_intervention = bool(self.sense_device.get_command_state())
+            except Exception:
+                pass
+
+        events = {
+            TeleopEvents.IS_INTERVENTION: self._intervention_active or pika_intervention,
+            TeleopEvents.TERMINATE_EPISODE: self._episode_terminate,
+            TeleopEvents.SUCCESS: self._episode_success,
+            TeleopEvents.RERECORD_EPISODE: self._rerecord,
+        }
+        # 一次性事件读后重置
+        self._episode_terminate = False
+        self._episode_success = False
+        self._rerecord = False
+        return events
+
     @check_if_not_connected
     def send_feedback(self, feedback: dict[str, float]) -> None:
         pass
 
     def disconnect(self) -> None:
+        if self._keyboard_listener is not None:
+            self._keyboard_listener.stop()
+            self._keyboard_listener = None
+
         if self.sense_device is not None:
             self.sense_device.disconnect()
 
@@ -351,5 +516,8 @@ class PikaTeleoperator(Teleoperator):
         self.initial_arm_matrix = None
         self._is_calibrated = False
         self._is_connected = False
+        self._intervention_active = False
+        self._space_pressed = False
+        self._prev_filtered_ee_pos = None
         if self.safety_guard is not None:
             self.safety_guard.reset()
