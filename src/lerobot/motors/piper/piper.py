@@ -1,5 +1,5 @@
 import time
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Dict
 
 from piper_sdk import C_PiperInterface_V2
@@ -7,8 +7,18 @@ from piper_sdk import C_PiperInterface_V2
 
 @dataclass
 class PiperMotorsBusConfig:
-    can_name: str
-    motors: dict[str, tuple[int, str]]
+    can_name: str = "can0"
+    motors: dict[str, tuple[int, str]] = field(
+        default_factory=lambda: {
+            "joint_1": (1, "agilex_piper"),
+            "joint_2": (2, "agilex_piper"),
+            "joint_3": (3, "agilex_piper"),
+            "joint_4": (4, "agilex_piper"),
+            "joint_5": (5, "agilex_piper"),
+            "joint_6": (6, "agilex_piper"),
+            "gripper": (7, "agilex_piper"),
+        }
+    )
 
 class PiperMotorsBus:
     """
