@@ -12,7 +12,39 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import re
+import tempfile
+from pathlib import Path
+
 import numpy as np
+
+
+def _resolve_urdf_for_placo(urdf_path: str) -> str:
+    urdf_file = Path(urdf_path).resolve()
+    text = urdf_file.read_text(encoding="utf-8")
+
+    package_pattern = re.compile(r"package://([^/]+)/")
+    package_names = sorted(set(package_pattern.findall(text)))
+    if not package_names:
+        return str(urdf_file)
+
+    parts = urdf_file.parts
+    if "share" not in parts:
+        return str(urdf_file)
+
+    share_idx = parts.index("share")
+    if share_idx + 1 >= len(parts):
+        return str(urdf_file)
+
+    package_root = Path(*parts[: share_idx + 2]).as_posix().rstrip("/") + "/"
+    rewritten = text
+    for package_name in package_names:
+        rewritten = rewritten.replace(f"package://{package_name}/", package_root)
+
+    tmp = tempfile.NamedTemporaryFile(prefix="placo_urdf_", suffix=".urdf", delete=False)
+    tmp.write(rewritten.encode("utf-8"))
+    tmp.close()
+    return tmp.name
 
 
 class RobotKinematics:
@@ -40,14 +72,35 @@ class RobotKinematics:
                 "Please install the optional dependencies of `kinematics` in the package."
             ) from e
 
-        self.robot = placo.RobotWrapper(urdf_path)
+        urdf_for_placo = _resolve_urdf_for_placo(urdf_path)
+        self.robot = placo.RobotWrapper(urdf_for_placo)
         self.solver = placo.KinematicsSolver(self.robot)
         self.solver.mask_fbase(True)  # Fix the base
 
         self.target_frame_name = target_frame_name
 
-        # Set joint names
-        self.joint_names = list(self.robot.joint_names()) if joint_names is None else joint_names
+        # Set joint names with fallback alias support (e.g. joint_1 -> joint1).
+        robot_joint_names = list(self.robot.joint_names())
+        if joint_names is None:
+            self.joint_names = robot_joint_names
+        else:
+            resolved_joint_names: list[str] = []
+            for name in joint_names:
+                if name in robot_joint_names:
+                    resolved_joint_names.append(name)
+                    continue
+
+                alias = name.replace("_", "")
+                if alias in robot_joint_names:
+                    resolved_joint_names.append(alias)
+                    continue
+
+                raise ValueError(
+                    f"Joint '{name}' not found in URDF joints {robot_joint_names}. "
+                    f"Also tried alias '{alias}'."
+                )
+
+            self.joint_names = resolved_joint_names
 
         # Initialize frame task for IK
         self.tip_frame = self.solver.add_frame_task(self.target_frame_name, np.eye(4))

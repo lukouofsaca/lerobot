@@ -108,17 +108,35 @@ class GymManipulatorConfig:
 
 def reset_follower_position(robot_arm: Robot, target_position: np.ndarray) -> None:
     """Reset robot arm to target position using smooth trajectory."""
-    current_position_dict = robot_arm.bus.sync_read("Present_Position")
-    current_position = np.array(
-        [current_position_dict[name] for name in current_position_dict], dtype=np.float32
-    )
-    trajectory = torch.from_numpy(
-        np.linspace(current_position, target_position, 50)
-    )  # NOTE: 30 is just an arbitrary number
-    for pose in trajectory:
-        action_dict = dict(zip(current_position_dict, pose, strict=False))
-        robot_arm.bus.sync_write("Goal_Position", action_dict)
-        precise_sleep(0.015)
+    if hasattr(robot_arm.bus, "sync_read") and hasattr(robot_arm.bus, "sync_write"):
+        current_position_dict = robot_arm.bus.sync_read("Present_Position")
+        current_position = np.array(
+            [current_position_dict[name] for name in current_position_dict], dtype=np.float32
+        )
+        trajectory = torch.from_numpy(np.linspace(current_position, target_position, 50))
+        for pose in trajectory:
+            action_dict = dict(zip(current_position_dict, pose, strict=False))
+            robot_arm.bus.sync_write("Goal_Position", action_dict)
+            precise_sleep(0.015)
+        return
+
+    if hasattr(robot_arm.bus, "read") and hasattr(robot_arm.bus, "write"):
+        state = robot_arm.bus.read()
+        joint_keys = [key for key in robot_arm.bus.motors.keys() if key != "gripper"]
+
+        current_joint_rad = np.array([state[key] / robot_arm.bus.joint_factor for key in joint_keys], dtype=np.float32)
+
+        target_joint_rad = np.array(target_position[: len(joint_keys)], dtype=np.float32)
+        trajectory = np.linspace(current_joint_rad, target_joint_rad, 50)
+
+        current_gripper = float(state.get("gripper", 0.0)) / 1_000_000.0
+        for pose in trajectory:
+            full_target = pose.tolist() + [current_gripper]
+            robot_arm.bus.write(full_target)
+            precise_sleep(0.015)
+        return
+
+    raise AttributeError("Unsupported motors bus interface: expected sync_read/sync_write or read/write")
 
 
 class RobotEnv(gym.Env):
