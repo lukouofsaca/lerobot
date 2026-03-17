@@ -168,8 +168,17 @@ class PiperFollower(Robot):
         if not self._is_connected:
             raise DeviceNotConnectedError("Piper is not connected.")
 
+        def _to_float(v):
+            if hasattr(v, "detach"):
+                v = v.detach()
+            if hasattr(v, "cpu"):
+                v = v.cpu()
+            if hasattr(v, "item"):
+                return float(v.item())
+            return float(v)
+
         motor_order = ["joint_1", "joint_2", "joint_3", "joint_4", "joint_5", "joint_6", "gripper"]
-        target_joints = [action[f"{motor}.pos"] for motor in motor_order]
+        target_joints = [_to_float(action[f"{motor}.pos"]) for motor in motor_order]
 
         self.bus.write(target_joints)
         return action

@@ -630,6 +630,7 @@ def control_loop(
     use_gripper = cfg.env.processor.gripper.use_gripper if cfg.env.processor.gripper is not None else True
 
     dataset = None
+    action_feature_names: list[str] | None = None
     if cfg.mode == "record":
         if teleop_device is None:
             if use_gripper:
@@ -638,6 +639,7 @@ def control_loop(
                     "shape": (4,),
                     "names": ["delta_x", "delta_y", "delta_z", "gripper_action"],
                 }
+                action_feature_names = action_features["names"]
             else:
                 raise NotImplementedError("Recording with gym_hil and no gripper has not been tested.")
             #     action_features = {
@@ -646,7 +648,12 @@ def control_loop(
             #         "names": ["delta_x", "delta_y", "delta_z"],
             #     }
         else:
-            action_features = teleop_device.action_features
+            action_feature_names = list(teleop_device.action_features.keys())
+            action_features = {
+                "dtype": "float32",
+                "shape": (len(action_feature_names),),
+                "names": action_feature_names,
+            }
         features = {
             ACTION: action_features,
             REWARD: {"dtype": "float32", "shape": (1,), "names": None},
@@ -722,6 +729,17 @@ def control_loop(
             action_to_record = transition[TransitionKey.COMPLEMENTARY_DATA].get(
                 "teleop_action", transition[TransitionKey.ACTION]
             )
+
+            if isinstance(action_to_record, dict):
+                if action_feature_names is None:
+                    action_feature_names = list(action_to_record.keys())
+                action_to_record = torch.tensor(
+                    [float(action_to_record[name]) for name in action_feature_names], dtype=torch.float32
+                )
+
+            if isinstance(action_to_record, np.ndarray):
+                action_to_record = torch.from_numpy(action_to_record.astype(np.float32, copy=False))
+
             frame = {
                 **observations,
                 ACTION: action_to_record.cpu(),
