@@ -8,6 +8,7 @@ import numpy as np
 class PikaSafetyGuardConfig:
     pose_timeout_sec: float = 0.25
     max_joint_step_deg: float = 8.0
+    max_joint_velocity_deg_s: float = 120.0
     max_consecutive_ik_failures: int = 8
     force_disable_on_pose_stale: bool = True
 
@@ -16,11 +17,13 @@ class PikaSafetyGuard:
     def __init__(self, config: PikaSafetyGuardConfig):
         self.config = config
         self._max_joint_step_rad = np.deg2rad(config.max_joint_step_deg)
+        self._max_joint_vel_rad_s = np.deg2rad(config.max_joint_velocity_deg_s)
 
         self._enabled = False
         self._enabled_prev = False
 
         self._last_pose_ts: float | None = None
+        self._last_apply_ts: float | None = None
         self._consecutive_ik_failures = 0
         self._last_safe_q: np.ndarray | None = None
 
@@ -30,6 +33,7 @@ class PikaSafetyGuard:
             PikaSafetyGuardConfig(
                 pose_timeout_sec=float(getattr(config, "pose_timeout_sec", 0.25)),
                 max_joint_step_deg=float(getattr(config, "max_joint_step_deg", 8.0)),
+                max_joint_velocity_deg_s=float(getattr(config, "max_joint_velocity_deg_s", 120.0)),
                 max_consecutive_ik_failures=int(getattr(config, "max_consecutive_ik_failures", 8)),
                 force_disable_on_pose_stale=bool(getattr(config, "force_disable_on_pose_stale", True)),
             )
@@ -67,8 +71,24 @@ class PikaSafetyGuard:
         self._enabled = False
         self._enabled_prev = False
         self._last_pose_ts = None
+        self._last_apply_ts = None
         self._consecutive_ik_failures = 0
         self._last_safe_q = None
+
+    def _allowed_joint_step_rad(self) -> float | None:
+        caps: list[float] = []
+        if self._max_joint_step_rad > 0.0:
+            caps.append(float(self._max_joint_step_rad))
+
+        now = time.monotonic()
+        if self._last_apply_ts is not None and self._max_joint_vel_rad_s > 0.0:
+            dt = max(0.0, now - self._last_apply_ts)
+            caps.append(float(self._max_joint_vel_rad_s * dt))
+
+        self._last_apply_ts = now
+        if not caps:
+            return None
+        return min(caps)
 
     def handle_pose_missing(self) -> bool:
         self.note_pose_missing()
@@ -89,10 +109,15 @@ class PikaSafetyGuard:
         if self._last_safe_q is None:
             self._last_safe_q = candidate_q.copy()
             self._consecutive_ik_failures = 0
+            self._last_apply_ts = time.monotonic()
             return self.last_safe_q, "ok_first"
 
         dq = candidate_q - self._last_safe_q
-        dq_clipped = np.clip(dq, -self._max_joint_step_rad, self._max_joint_step_rad)
+        allowed_step_rad = self._allowed_joint_step_rad()
+        if allowed_step_rad is None:
+            dq_clipped = dq
+        else:
+            dq_clipped = np.clip(dq, -allowed_step_rad, allowed_step_rad)
         safe_q = self._last_safe_q + dq_clipped
 
         clipped = bool(np.any(np.abs(dq - dq_clipped) > 1e-9))

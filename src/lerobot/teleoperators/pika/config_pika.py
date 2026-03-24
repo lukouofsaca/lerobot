@@ -38,6 +38,7 @@ class PikaTeleoperatorConfig(TeleoperatorConfig):
     use_command_state_enable: bool = False
     pose_timeout_sec: float = 0.25
     max_joint_step_deg: float = 5.0
+    max_joint_velocity_deg_s: float = 120.0
     max_consecutive_ik_failures: int = 8
     force_disable_on_pose_stale: bool = True
     output_mode: str = "joint"  # "joint" | "ee_delta"

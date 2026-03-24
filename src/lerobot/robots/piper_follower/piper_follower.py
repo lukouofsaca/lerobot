@@ -154,8 +154,16 @@ class PiperFollower(Robot):
             raise DeviceNotConnectedError("Piper is not connected. Run `robot.connect()` first.")
 
         # 读取关节状态
-        state = self.bus.read()  # e.g., {'joint_1': 0.1, ..., 'gripper': 0.0}
-        obs_dict = {f"{joint}.pos": float(val) for joint, val in state.items()}
+        state = self.bus.read()
+        joint_factor = float(getattr(self.bus, "joint_factor", 57295.779513))
+        gripper_factor = 1_000_000.0
+        obs_dict = {}
+        for joint, val in state.items():
+            raw_val = float(val)
+            if joint == "gripper":
+                obs_dict[f"{joint}.pos"] = raw_val / gripper_factor
+            else:
+                obs_dict[f"{joint}.pos"] = raw_val / joint_factor
 
         # 读取图像
         for name, cam in self.cameras.items():
@@ -179,6 +187,7 @@ class PiperFollower(Robot):
 
         motor_order = ["joint_1", "joint_2", "joint_3", "joint_4", "joint_5", "joint_6", "gripper"]
         target_joints = [_to_float(action[f"{motor}.pos"]) for motor in motor_order]
+        target_joints[-1] = max(0.0, min(0.08, target_joints[-1]))
 
         self.bus.write(target_joints)
         return action

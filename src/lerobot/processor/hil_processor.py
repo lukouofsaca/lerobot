@@ -442,6 +442,7 @@ class InterventionActionProcessorStep(ProcessorStep):
 
     use_gripper: bool = False
     terminate_on_success: bool = True
+    force_teleop_action: bool = False
 
     def __call__(self, transition: EnvTransition) -> EnvTransition:
         """
@@ -463,6 +464,7 @@ class InterventionActionProcessorStep(ProcessorStep):
         complementary_data = transition.get(TransitionKey.COMPLEMENTARY_DATA, {})
         teleop_action = complementary_data.get(TELEOP_ACTION_KEY, {})
         is_intervention = info.get(TeleopEvents.IS_INTERVENTION, False)
+        effective_intervention = bool(is_intervention) or self.force_teleop_action
         terminate_episode = info.get(TeleopEvents.TERMINATE_EPISODE, False)
         success = info.get(TeleopEvents.SUCCESS, False)
         rerecord_episode = info.get(TeleopEvents.RERECORD_EPISODE, False)
@@ -470,16 +472,48 @@ class InterventionActionProcessorStep(ProcessorStep):
         new_transition = transition.copy()
 
         # Override action if intervention is active
-        if is_intervention and teleop_action is not None:
+        if effective_intervention and teleop_action is not None:
             if isinstance(teleop_action, dict):
-                # Convert teleop_action dict to tensor format
-                action_list = [
-                    teleop_action.get("delta_x", 0.0),
-                    teleop_action.get("delta_y", 0.0),
-                    teleop_action.get("delta_z", 0.0),
-                ]
+                has_delta_keys = any(k in teleop_action for k in ("delta_x", "delta_y", "delta_z"))
+                has_joint_keys = any(isinstance(k, str) and k.endswith(".pos") for k in teleop_action)
+
+                if has_delta_keys:
+                    action_list = [
+                        teleop_action.get("delta_x", 0.0),
+                        teleop_action.get("delta_y", 0.0),
+                        teleop_action.get("delta_z", 0.0),
+                    ]
+                elif has_joint_keys:
+                    # If teleop dict is in joint-space keys, keep EE delta neutral to avoid
+                    # injecting malformed action into pika IK delta pipeline.
+                    action_list = [0.0, 0.0, 0.0]
+                else:
+                    action_list = [
+                        teleop_action.get("delta_x", 0.0),
+                        teleop_action.get("delta_y", 0.0),
+                        teleop_action.get("delta_z", 0.0),
+                    ]
+
                 if self.use_gripper:
-                    action_list.append(teleop_action.get(GRIPPER_KEY, 1.0))
+                    default_gripper = 0.5
+                    observation = transition.get(TransitionKey.OBSERVATION, {})
+                    if isinstance(observation, dict) and "gripper.pos" in observation:
+                        try:
+                            default_gripper = float(np.clip(float(observation["gripper.pos"]) / 0.08, 0.0, 1.0))
+                        except Exception:
+                            default_gripper = 0.5
+
+                    if GRIPPER_KEY in teleop_action:
+                        gripper_value = teleop_action.get(GRIPPER_KEY, default_gripper)
+                    elif "gripper.pos" in teleop_action:
+                        try:
+                            gripper_value = float(np.clip(float(teleop_action["gripper.pos"]) / 0.08, 0.0, 1.0))
+                        except Exception:
+                            gripper_value = default_gripper
+                    else:
+                        gripper_value = default_gripper
+
+                    action_list.append(gripper_value)
             elif isinstance(teleop_action, np.ndarray):
                 action_list = teleop_action.tolist()
             else:
@@ -496,7 +530,7 @@ class InterventionActionProcessorStep(ProcessorStep):
 
         # Update info with intervention metadata
         info = new_transition.get(TransitionKey.INFO, {})
-        info[TeleopEvents.IS_INTERVENTION] = is_intervention
+        info[TeleopEvents.IS_INTERVENTION] = effective_intervention
         info[TeleopEvents.RERECORD_EPISODE] = rerecord_episode
         info[TeleopEvents.SUCCESS] = success
         new_transition[TransitionKey.INFO] = info
@@ -518,6 +552,7 @@ class InterventionActionProcessorStep(ProcessorStep):
         return {
             "use_gripper": self.use_gripper,
             "terminate_on_success": self.terminate_on_success,
+            "force_teleop_action": self.force_teleop_action,
         }
 
     def transform_features(

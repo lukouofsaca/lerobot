@@ -51,6 +51,8 @@ class PikaTeleoperator(Teleoperator):
 
         self.last_valid_action = {**{f"joint_{i}.pos": 0.0 for i in range(1, 7)}, "gripper.pos": 0.0}
         self._max_joint_step_rad = np.deg2rad(float(self.config.max_joint_step_deg))
+        self._max_joint_vel_rad_s = np.deg2rad(float(self.config.max_joint_velocity_deg_s))
+        self._last_joint_shape_ts: float | None = None
 
         if self.config.enable_safety_guard:
             self.safety_guard = PikaSafetyGuard.from_teleoperator_config(self.config)
@@ -66,6 +68,7 @@ class PikaTeleoperator(Teleoperator):
 
         # ── EE-delta 模式状态 ──
         self._prev_filtered_ee_pos: np.ndarray | None = None
+        self._ee_alignment_rot: np.ndarray | None = None
         self._last_ee_delta_action: dict[str, float] = {
             "delta_x": 0.0, "delta_y": 0.0, "delta_z": 0.0, "gripper": 0.0
         }
@@ -195,6 +198,7 @@ class PikaTeleoperator(Teleoperator):
 
         self.initial_pika_matrix = pika_matrix
         self.initial_arm_matrix = arm_matrix
+        self._ee_alignment_rot = arm_matrix[:3, :3] @ np.linalg.inv(pika_matrix[:3, :3])
         self.filters_reset = True
         self._is_calibrated = True
         self._update_last_valid_action(home_q, self.last_valid_action["gripper.pos"])
@@ -206,6 +210,8 @@ class PikaTeleoperator(Teleoperator):
 
         if self.safety_guard is not None:
             self.safety_guard.reset()
+
+        self._last_joint_shape_ts = None
 
     @check_if_not_connected
     def configure(self) -> None:
@@ -258,6 +264,24 @@ class PikaTeleoperator(Teleoperator):
         except Exception:
             return 0.0
 
+    def _get_zero_ee_delta_action(self) -> dict[str, float]:
+        gripper_mm = 0.0
+        try:
+            if self.sense_device is not None:
+                raw = self.sense_device.get_gripper_distance()
+                if raw is not None:
+                    gripper_mm = float(raw)
+        except Exception:
+            pass
+        gripper_norm = float(np.clip(gripper_mm / 90.0, 0.0, 1.0))
+        self._last_ee_delta_action = {
+            "delta_x": 0.0,
+            "delta_y": 0.0,
+            "delta_z": 0.0,
+            "gripper": gripper_norm,
+        }
+        return self._last_ee_delta_action.copy()
+
     def _update_last_gripper_action(self, gripper_rad: float) -> None:
         self.last_valid_action["gripper.pos"] = float(gripper_rad)
 
@@ -286,11 +310,23 @@ class PikaTeleoperator(Teleoperator):
         candidate_q = np.asarray(candidate_q, dtype=float).reshape(-1)
         reference_q = np.asarray(reference_q, dtype=float).reshape(-1)
 
-        if self._max_joint_step_rad <= 0.0:
+        allowed_steps: list[float] = []
+        if self._max_joint_step_rad > 0.0:
+            allowed_steps.append(float(self._max_joint_step_rad))
+
+        now = time.monotonic()
+        if self._last_joint_shape_ts is not None and self._max_joint_vel_rad_s > 0.0:
+            dt = max(0.0, now - self._last_joint_shape_ts)
+            allowed_steps.append(float(self._max_joint_vel_rad_s * dt))
+        self._last_joint_shape_ts = now
+
+        if not allowed_steps:
             return candidate_q.copy(), False
 
+        allowed_step = min(allowed_steps)
+
         dq = candidate_q - reference_q
-        dq_clipped = np.clip(dq, -self._max_joint_step_rad, self._max_joint_step_rad)
+        dq_clipped = np.clip(dq, -allowed_step, allowed_step)
         shaped_q = reference_q + dq_clipped
         clipped = bool(np.any(np.abs(dq - dq_clipped) > 1e-9))
         return shaped_q, clipped
@@ -309,7 +345,7 @@ class PikaTeleoperator(Teleoperator):
             if guard is not None:
                 guard.handle_pose_missing()
             if self.config.output_mode == "ee_delta":
-                return self._last_ee_delta_action.copy()
+                return self._get_zero_ee_delta_action()
             return self.last_valid_action.copy()
 
         if guard is not None:
@@ -329,15 +365,58 @@ class PikaTeleoperator(Teleoperator):
 
             if not guard.enabled:
                 if self.config.output_mode == "ee_delta":
-                    return self._last_ee_delta_action.copy()
+                    return self._get_zero_ee_delta_action()
                 return self.last_valid_action.copy()
+
+        if self.config.output_mode == "ee_delta":
+            mapped_pos = self._map_tracker_translation_to_ee_position(current_pika_matrix)
+            return self._get_ee_delta_action_from_position(mapped_pos)
 
         target_matrix = self.initial_arm_matrix @ np.dot(np.linalg.inv(self.initial_pika_matrix), current_pika_matrix)
         filtered_target_matrix = self._filter_pose(target_matrix)
 
-        if self.config.output_mode == "ee_delta":
-            return self._get_ee_delta_action(filtered_target_matrix, gripper_rad)
         return self._get_joint_action(filtered_target_matrix, gripper_rad)
+
+    def _map_tracker_translation_to_ee_position(self, current_pika_matrix: np.ndarray) -> np.ndarray:
+        if self.initial_pika_matrix is None or self.initial_arm_matrix is None:
+            raise RuntimeError("Teleoperator must be calibrated before ee_delta mapping")
+
+        align_rot = self._ee_alignment_rot
+        if align_rot is None:
+            align_rot = self.initial_arm_matrix[:3, :3] @ np.linalg.inv(self.initial_pika_matrix[:3, :3])
+            self._ee_alignment_rot = align_rot
+
+        tracker_delta = current_pika_matrix[:3, 3] - self.initial_pika_matrix[:3, 3]
+        return self.initial_arm_matrix[:3, 3] + align_rot @ tracker_delta
+
+    def _get_ee_delta_action_from_position(self, current_pos: np.ndarray) -> dict[str, float]:
+        if self._prev_filtered_ee_pos is None:
+            delta = np.zeros(3)
+        else:
+            delta = current_pos - self._prev_filtered_ee_pos
+        self._prev_filtered_ee_pos = current_pos.copy()
+
+        deadband_m = 0.0015
+        delta[np.abs(delta) < deadband_m] = 0.0
+        delta = np.clip(delta, -0.01, 0.01)
+
+        gripper_mm = 0.0
+        try:
+            if self.sense_device is not None:
+                raw = self.sense_device.get_gripper_distance()
+                if raw is not None:
+                    gripper_mm = float(raw)
+        except Exception:
+            pass
+        gripper_norm = float(np.clip(gripper_mm / 90.0, 0.0, 1.0))
+
+        self._last_ee_delta_action = {
+            "delta_x": float(delta[0]),
+            "delta_y": float(delta[1]),
+            "delta_z": float(delta[2]),
+            "gripper": gripper_norm,
+        }
+        return self._last_ee_delta_action.copy()
 
     def _get_joint_action(self, filtered_target_matrix: np.ndarray, gripper_rad: float) -> dict[str, float]:
         if self.ik_solver is None:
@@ -381,6 +460,9 @@ class PikaTeleoperator(Teleoperator):
         else:
             delta = current_pos - self._prev_filtered_ee_pos
         self._prev_filtered_ee_pos = current_pos
+
+        deadband_m = 0.0015
+        delta[np.abs(delta) < deadband_m] = 0.0
 
         gripper_mm = 0.0
         try:

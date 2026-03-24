@@ -522,22 +522,48 @@ def record(cfg: RecordConfig) -> LeRobotDataset:
                 ):
                     log_say("Reset the environment", cfg.play_sounds)
 
-                    # reset g1 robot
-                    if robot.name == "unitree_g1":
-                        robot.reset()
+                    reset_max_attempts = 3
+                    reset_retry_wait_s = 2.0
+                    reset_attempt = 0
 
-                    record_loop(
-                        robot=robot,
-                        events=events,
-                        fps=cfg.dataset.fps,
-                        teleop_action_processor=teleop_action_processor,
-                        robot_action_processor=robot_action_processor,
-                        robot_observation_processor=robot_observation_processor,
-                        teleop=teleop,
-                        control_time_s=cfg.dataset.reset_time_s,
-                        single_task=cfg.dataset.single_task,
-                        display_data=cfg.display_data,
-                    )
+                    while reset_attempt < reset_max_attempts and not events["stop_recording"]:
+                        reset_attempt += 1
+                        try:
+                            # reset g1 robot
+                            if robot.name == "unitree_g1":
+                                robot.reset()
+
+                            events["exit_early"] = False
+                            record_loop(
+                                robot=robot,
+                                events=events,
+                                fps=cfg.dataset.fps,
+                                teleop_action_processor=teleop_action_processor,
+                                robot_action_processor=robot_action_processor,
+                                robot_observation_processor=robot_observation_processor,
+                                teleop=teleop,
+                                control_time_s=cfg.dataset.reset_time_s,
+                                single_task=cfg.dataset.single_task,
+                                display_data=cfg.display_data,
+                            )
+                            break
+                        except Exception as exc:
+                            logging.exception(
+                                "Reset phase failed (attempt %d/%d): %s",
+                                reset_attempt,
+                                reset_max_attempts,
+                                exc,
+                            )
+
+                            if reset_attempt >= reset_max_attempts:
+                                raise
+
+                            wait_s = reset_retry_wait_s * reset_attempt
+                            log_say(
+                                f"Reset failed, retrying in {wait_s:.1f}s ({reset_attempt}/{reset_max_attempts})",
+                                cfg.play_sounds,
+                            )
+                            time.sleep(wait_s)
 
                 if events["rerecord_episode"]:
                     log_say("Re-record episode", cfg.play_sounds)

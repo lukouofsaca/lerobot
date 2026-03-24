@@ -360,6 +360,7 @@ class GripperVelocityToJoint(RobotActionProcessorStep):
     clip_min: float = 0.0
     clip_max: float = 100.0
     discrete_gripper: bool = False
+    absolute_input: bool = False
 
     def action(self, action: RobotAction) -> RobotAction:
         observation = self.transition.get(TransitionKey.OBSERVATION).copy()
@@ -382,10 +383,14 @@ class GripperVelocityToJoint(RobotActionProcessorStep):
             # We need to shift them to [-1, 0, 1] and then scale them to clip_max
             gripper_vel = (gripper_vel - 1) * self.clip_max
 
-        # Compute desired gripper position
-        delta = gripper_vel * float(self.speed_factor)
-        # TODO: This assumes gripper is the last specified joint in the robot
-        gripper_pos = float(np.clip(q_raw[-1] + delta, self.clip_min, self.clip_max))
+        if self.absolute_input:
+            gripper_alpha = float(np.clip(gripper_vel, 0.0, 1.0))
+            gripper_pos = float(self.clip_min + gripper_alpha * (self.clip_max - self.clip_min))
+        else:
+            # Compute desired gripper position
+            delta = gripper_vel * float(self.speed_factor)
+            # TODO: This assumes gripper is the last specified joint in the robot
+            gripper_pos = float(np.clip(q_raw[-1] + delta, self.clip_min, self.clip_max))
         action["ee.gripper_pos"] = gripper_pos
 
         return action

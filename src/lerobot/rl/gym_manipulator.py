@@ -76,6 +76,8 @@ from lerobot.teleoperators import (
 from lerobot.teleoperators.teleoperator import Teleoperator
 from lerobot.teleoperators.utils import TeleopEvents
 from lerobot.utils.constants import ACTION, DONE, OBS_IMAGES, OBS_STATE, REWARD
+from lerobot.utils.control_utils import init_keyboard_listener, is_headless
+from lerobot.utils.import_utils import register_third_party_plugins
 from lerobot.utils.robot_utils import precise_sleep
 from lerobot.utils.utils import log_say
 
@@ -354,6 +356,22 @@ def make_robot_env(cfg: HILSerlRobotEnvConfig) -> tuple[gym.Env, Any]:
 
     robot = make_robot_from_config(cfg.robot)
     teleop_device = make_teleoperator_from_config(cfg.teleop)
+
+    # Pika + IK pipeline requires ee_delta teleop actions (4D).
+    if (
+        cfg.processor.control_mode == "pika"
+        and cfg.processor.inverse_kinematics is not None
+        and hasattr(teleop_device, "config")
+        and getattr(teleop_device.config, "output_mode", None) != "ee_delta"
+    ):
+        logging.warning(
+            "Overriding pika teleop output_mode from %s to ee_delta for IK pipeline compatibility.",
+            getattr(teleop_device.config, "output_mode", None),
+        )
+        teleop_device.config.output_mode = "ee_delta"
+        if cfg.teleop is not None:
+            cfg.teleop.output_mode = "ee_delta"
+
     teleop_device.connect()
 
     # Create base environment with safe defaults
@@ -362,12 +380,19 @@ def make_robot_env(cfg: HILSerlRobotEnvConfig) -> tuple[gym.Env, Any]:
         cfg.processor.observation.display_cameras if cfg.processor.observation is not None else False
     )
     reset_pose = cfg.processor.reset.fixed_reset_joint_positions if cfg.processor.reset is not None else None
+    reset_time_s = cfg.processor.reset.reset_time_s if cfg.processor.reset is not None else 5.0
+
+    # Keep behavior closer to lerobot.record for Pika+IK:
+    # do not force hard home reset every episode unless user explicitly changes config code path.
+    if cfg.processor.control_mode == "pika" and cfg.processor.inverse_kinematics is not None:
+        reset_pose = None
 
     env = RobotEnv(
         robot=robot,
         use_gripper=use_gripper,
         display_cameras=display_cameras,
         reset_pose=reset_pose,
+        reset_time_s=reset_time_s,
     )
 
     return env, teleop_device
@@ -491,23 +516,41 @@ def make_processors(
     env_pipeline_steps.append(AddBatchDimensionProcessorStep())
     env_pipeline_steps.append(DeviceProcessorStep(device=device))
 
-    action_pipeline_steps = [
-        AddTeleopActionAsComplimentaryDataStep(teleop_device=teleop_device),
-        AddTeleopEventsAsInfoStep(teleop_device=teleop_device),
+    action_pipeline_steps = []
+    if teleop_device is not None:
+        if cfg.processor.control_mode != "pika":
+            action_pipeline_steps.append(AddTeleopActionAsComplimentaryDataStep(teleop_device=teleop_device))
+        action_pipeline_steps.append(AddTeleopEventsAsInfoStep(teleop_device=teleop_device))
+
+    action_pipeline_steps.append(
         InterventionActionProcessorStep(
             use_gripper=cfg.processor.gripper.use_gripper if cfg.processor.gripper is not None else False,
             terminate_on_success=terminate_on_success,
-        ),
-    ]
+            force_teleop_action=cfg.processor.control_mode == "pika",
+        )
+    )
 
     # Replace InverseKinematicsProcessor with new kinematic processors
     if cfg.processor.inverse_kinematics is not None and kinematics_solver is not None:
         # Add EE bounds and safety processor
+        runtime_output_mode = None
+        if teleop_device is not None and hasattr(teleop_device, "config"):
+            runtime_output_mode = getattr(teleop_device.config, "output_mode", None)
+        config_output_mode = getattr(cfg.teleop, "output_mode", None)
+        effective_output_mode = runtime_output_mode if runtime_output_mode is not None else config_output_mode
+
+        is_pika_ee_delta = (
+            getattr(cfg.teleop, "type", None) == "pika"
+            and effective_output_mode == "ee_delta"
+        )
+
         inverse_kinematics_steps = [
             MapTensorToDeltaActionDictStep(
                 use_gripper=cfg.processor.gripper.use_gripper if cfg.processor.gripper is not None else False
             ),
-            MapDeltaActionToRobotActionStep(),
+            MapDeltaActionToRobotActionStep(
+                noise_threshold=0.005 if is_pika_ee_delta else 1e-3,
+            ),
             EEReferenceAndDelta(
                 kinematics=kinematics_solver,
                 end_effector_step_sizes=cfg.processor.inverse_kinematics.end_effector_step_sizes,
@@ -519,9 +562,10 @@ def make_processors(
                 end_effector_bounds=cfg.processor.inverse_kinematics.end_effector_bounds,
             ),
             GripperVelocityToJoint(
-                clip_max=cfg.processor.max_gripper_pos,
-                speed_factor=1.0,
-                discrete_gripper=True,
+                clip_max=0.08 if is_pika_ee_delta else cfg.processor.max_gripper_pos,
+                speed_factor=0.0 if is_pika_ee_delta else 1.0,
+                discrete_gripper=False if is_pika_ee_delta else True,
+                absolute_input=True if is_pika_ee_delta else False,
             ),
             InverseKinematicsRLStep(
                 kinematics=kinematics_solver, motor_names=motor_names, initial_guess_current_joints=False
@@ -649,6 +693,12 @@ def control_loop(
             #     }
         else:
             action_feature_names = list(teleop_device.action_features.keys())
+            if (
+                cfg.env.processor.control_mode == "pika"
+                and cfg.env.processor.inverse_kinematics is not None
+                and len(action_feature_names) != 4
+            ):
+                action_feature_names = ["delta_x", "delta_y", "delta_z", "gripper"]
             action_features = {
                 "dtype": "float32",
                 "shape": (len(action_feature_names),),
@@ -691,105 +741,129 @@ def control_loop(
             features=features,
         )
 
+    listener = None
+    events = {"exit_early": False, "rerecord_episode": False, "stop_recording": False}
+    if cfg.mode == "record":
+        listener, events = init_keyboard_listener()
+
     episode_idx = 0
     episode_step = 0
     episode_start_time = time.perf_counter()
 
-    while episode_idx < cfg.dataset.num_episodes_to_record:
-        step_start_time = time.perf_counter()
+    try:
+        while episode_idx < cfg.dataset.num_episodes_to_record and not events["stop_recording"]:
+            step_start_time = time.perf_counter()
 
-        # Create a neutral action (no movement)
-        neutral_action = torch.tensor([0.0, 0.0, 0.0], dtype=torch.float32)
-        if use_gripper:
-            #2482
-            neutral_action = torch.cat([neutral_action, torch.tensor([1.0])]) 
-            # 
-            # 
-            # 
-            # neutral_action = torch.cat([neutral_action, torch.tensor([0.0])])  # Gripper stay
+            # Create a neutral action (no movement)
+            neutral_action = torch.tensor([0.0, 0.0, 0.0], dtype=torch.float32)
+            if use_gripper:
+                neutral_action = torch.cat([neutral_action, torch.tensor([1.0])])
 
-        # Use the new step function
-        transition = step_env_and_process_transition(
-            env=env,
-            transition=transition,
-            action=neutral_action,
-            env_processor=env_processor,
-            action_processor=action_processor,
-        )
-        terminated = transition.get(TransitionKey.DONE, False)
-        truncated = transition.get(TransitionKey.TRUNCATED, False)
+            # Align with lerobot.record chain for pika: poll teleop in loop once,
+            # inject raw teleop action into complementary data, then let the action
+            # processor convert/route to robot commands.
+            if teleop_device is not None and cfg.env.processor.control_mode == "pika":
+                teleop_action = teleop_device.get_action()
+                complementary_data = transition.get(TransitionKey.COMPLEMENTARY_DATA, {}).copy()
+                complementary_data["teleop_action"] = teleop_action
+                transition[TransitionKey.COMPLEMENTARY_DATA] = complementary_data
 
-        if cfg.mode == "record":
-            observations = {
-                k: v.squeeze(0).cpu()
-                for k, v in transition[TransitionKey.OBSERVATION].items()
-                if isinstance(v, torch.Tensor)
-            }
-            # Use teleop_action if available, otherwise use the action from the transition
-            action_to_record = transition[TransitionKey.COMPLEMENTARY_DATA].get(
-                "teleop_action", transition[TransitionKey.ACTION]
+            # Use the new step function
+            transition = step_env_and_process_transition(
+                env=env,
+                transition=transition,
+                action=neutral_action,
+                env_processor=env_processor,
+                action_processor=action_processor,
             )
+            terminated = transition.get(TransitionKey.DONE, False)
+            truncated = transition.get(TransitionKey.TRUNCATED, False)
 
-            if isinstance(action_to_record, dict):
-                if action_feature_names is None:
-                    action_feature_names = list(action_to_record.keys())
-                action_to_record = torch.tensor(
-                    [float(action_to_record[name]) for name in action_feature_names], dtype=torch.float32
+            if events["exit_early"]:
+                events["exit_early"] = False
+                terminated = True
+
+            if cfg.mode == "record":
+                observations = {
+                    k: v.squeeze(0).cpu()
+                    for k, v in transition[TransitionKey.OBSERVATION].items()
+                    if isinstance(v, torch.Tensor)
+                }
+                # Use teleop_action if available, otherwise use the action from the transition
+                action_to_record = transition[TransitionKey.COMPLEMENTARY_DATA].get(
+                    "teleop_action", transition[TransitionKey.ACTION]
                 )
 
-            if isinstance(action_to_record, np.ndarray):
-                action_to_record = torch.from_numpy(action_to_record.astype(np.float32, copy=False))
+                if isinstance(action_to_record, dict):
+                    if action_feature_names is None:
+                        action_feature_names = list(action_to_record.keys())
+                    action_to_record = torch.tensor(
+                        [float(action_to_record[name]) for name in action_feature_names], dtype=torch.float32
+                    )
 
-            frame = {
-                **observations,
-                ACTION: action_to_record.cpu(),
-                REWARD: np.array([transition[TransitionKey.REWARD]], dtype=np.float32),
-                DONE: np.array([terminated or truncated], dtype=bool),
-            }
-            if use_gripper:
-                discrete_penalty = transition[TransitionKey.COMPLEMENTARY_DATA].get("discrete_penalty", 0.0)
-                frame["complementary_info.discrete_penalty"] = np.array([discrete_penalty], dtype=np.float32)
+                if isinstance(action_to_record, np.ndarray):
+                    action_to_record = torch.from_numpy(action_to_record.astype(np.float32, copy=False))
 
-            if dataset is not None:
-                frame["task"] = cfg.dataset.task
-                dataset.add_frame(frame)
+                frame = {
+                    **observations,
+                    ACTION: action_to_record.cpu(),
+                    REWARD: np.array([transition[TransitionKey.REWARD]], dtype=np.float32),
+                    DONE: np.array([terminated or truncated], dtype=bool),
+                }
+                if use_gripper:
+                    discrete_penalty = transition[TransitionKey.COMPLEMENTARY_DATA].get("discrete_penalty", 0.0)
+                    frame["complementary_info.discrete_penalty"] = np.array([discrete_penalty], dtype=np.float32)
 
-        episode_step += 1
+                if dataset is not None:
+                    frame["task"] = cfg.dataset.task
+                    dataset.add_frame(frame)
 
-        # Handle episode termination
-        if terminated or truncated:
-            episode_time = time.perf_counter() - episode_start_time
-            logging.info(
-                f"Episode ended after {episode_step} steps in {episode_time:.1f}s with reward {transition[TransitionKey.REWARD]}"
-            )
-            episode_step = 0
-            episode_idx += 1
+            episode_step += 1
 
-            if dataset is not None:
-                if transition[TransitionKey.INFO].get(TeleopEvents.RERECORD_EPISODE, False):
-                    logging.info(f"Re-recording episode {episode_idx}")
-                    dataset.clear_episode_buffer()
-                    episode_idx -= 1
-                else:
-                    logging.info(f"Saving episode {episode_idx}")
-                    dataset.save_episode()
+            # Handle episode termination
+            if terminated or truncated:
+                episode_time = time.perf_counter() - episode_start_time
+                logging.info(
+                    f"Episode ended after {episode_step} steps in {episode_time:.1f}s with reward {transition[TransitionKey.REWARD]}"
+                )
+                episode_step = 0
+                episode_idx += 1
 
-            # Reset for new episode
-            obs, info = env.reset()
-            env_processor.reset()
-            action_processor.reset()
+                if dataset is not None:
+                    rerecord_requested = bool(events["rerecord_episode"]) or bool(
+                        transition[TransitionKey.INFO].get(TeleopEvents.RERECORD_EPISODE, False)
+                    )
+                    if rerecord_requested:
+                        logging.info(f"Re-recording episode {episode_idx}")
+                        dataset.clear_episode_buffer()
+                        episode_idx -= 1
+                        events["rerecord_episode"] = False
+                    else:
+                        logging.info(f"Saving episode {episode_idx}")
+                        dataset.save_episode()
 
-            transition = create_transition(observation=obs, info=info)
-            transition = env_processor(transition)
+                # Reset for new episode
+                obs, info = env.reset()
+                env_processor.reset()
+                action_processor.reset()
+                episode_start_time = time.perf_counter()
 
-        # Maintain fps timing
-        precise_sleep(max(dt - (time.perf_counter() - step_start_time), 0.0))
+                transition = create_transition(observation=obs, info=info)
+                transition = env_processor(transition)
 
-    if dataset is not None and cfg.dataset.push_to_hub:
-        logging.info("Finalizing dataset before pushing to hub")
-        dataset.finalize()
-        logging.info("Pushing dataset to hub")
-        dataset.push_to_hub()
+            # Maintain fps timing
+            precise_sleep(max(dt - (time.perf_counter() - step_start_time), 0.0))
+    finally:
+        if dataset is not None:
+            logging.info("Finalizing dataset")
+            dataset.finalize()
+
+        if listener is not None and (not is_headless()):
+            listener.stop()
+
+        if dataset is not None and cfg.dataset.push_to_hub:
+            logging.info("Pushing dataset to hub")
+            dataset.push_to_hub()
 
 
 def replay_trajectory(
@@ -823,6 +897,7 @@ def replay_trajectory(
 @parser.wrap()
 def main(cfg: GymManipulatorConfig) -> None:
     """Main entry point for gym manipulator script."""
+    register_third_party_plugins()
     env, teleop_device = make_robot_env(cfg.env)
     env_processor, action_processor = make_processors(env, teleop_device, cfg.env, cfg.device)
 
