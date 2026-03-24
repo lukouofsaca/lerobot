@@ -51,8 +51,6 @@ class PikaTeleoperator(Teleoperator):
 
         self.last_valid_action = {**{f"joint_{i}.pos": 0.0 for i in range(1, 7)}, "gripper.pos": 0.0}
         self._max_joint_step_rad = np.deg2rad(float(self.config.max_joint_step_deg))
-        self._max_joint_vel_rad_s = np.deg2rad(float(self.config.max_joint_velocity_deg_s))
-        self._last_joint_shape_ts: float | None = None
 
         if self.config.enable_safety_guard:
             self.safety_guard = PikaSafetyGuard.from_teleoperator_config(self.config)
@@ -211,8 +209,6 @@ class PikaTeleoperator(Teleoperator):
         if self.safety_guard is not None:
             self.safety_guard.reset()
 
-        self._last_joint_shape_ts = None
-
     @check_if_not_connected
     def configure(self) -> None:
         pass
@@ -310,23 +306,11 @@ class PikaTeleoperator(Teleoperator):
         candidate_q = np.asarray(candidate_q, dtype=float).reshape(-1)
         reference_q = np.asarray(reference_q, dtype=float).reshape(-1)
 
-        allowed_steps: list[float] = []
-        if self._max_joint_step_rad > 0.0:
-            allowed_steps.append(float(self._max_joint_step_rad))
-
-        now = time.monotonic()
-        if self._last_joint_shape_ts is not None and self._max_joint_vel_rad_s > 0.0:
-            dt = max(0.0, now - self._last_joint_shape_ts)
-            allowed_steps.append(float(self._max_joint_vel_rad_s * dt))
-        self._last_joint_shape_ts = now
-
-        if not allowed_steps:
+        if self._max_joint_step_rad <= 0.0:
             return candidate_q.copy(), False
 
-        allowed_step = min(allowed_steps)
-
         dq = candidate_q - reference_q
-        dq_clipped = np.clip(dq, -allowed_step, allowed_step)
+        dq_clipped = np.clip(dq, -self._max_joint_step_rad, self._max_joint_step_rad)
         shaped_q = reference_q + dq_clipped
         clipped = bool(np.any(np.abs(dq - dq_clipped) > 1e-9))
         return shaped_q, clipped

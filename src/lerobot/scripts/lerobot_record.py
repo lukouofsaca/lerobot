@@ -406,6 +406,44 @@ def record_loop(
         timestamp = time.perf_counter() - start_episode_t
 
 
+def freeze_robot_before_reset(
+    robot: Robot,
+    freeze_time_s: float = 1.0,
+    hold_hz: float = 10.0,
+) -> None:
+    """Hold current joint targets briefly before reset to stabilize control/can bus."""
+    if freeze_time_s <= 0 or hold_hz <= 0:
+        return
+
+    if not hasattr(robot, "get_observation") or not hasattr(robot, "send_action"):
+        return
+
+    try:
+        observation = robot.get_observation()
+        if not isinstance(observation, dict):
+            return
+
+        action_features = getattr(robot, "action_features", {})
+        if not isinstance(action_features, dict) or len(action_features) == 0:
+            return
+
+        hold_action: dict[str, float] = {}
+        for key in action_features.keys():
+            if key in observation:
+                hold_action[key] = float(observation[key])
+
+        if len(hold_action) == 0:
+            return
+
+        dt = 1.0 / hold_hz
+        t_start = time.perf_counter()
+        while time.perf_counter() - t_start < freeze_time_s:
+            robot.send_action(hold_action)
+            precise_sleep(dt)
+    except Exception as exc:
+        logging.warning("Freeze before reset failed (continuing): %s", exc)
+
+
 @parser.wrap()
 def record(cfg: RecordConfig) -> LeRobotDataset:
     init_logging()
@@ -524,13 +562,19 @@ def record(cfg: RecordConfig) -> LeRobotDataset:
 
                     reset_max_attempts = 3
                     reset_retry_wait_s = 2.0
+                    reset_pre_freeze_s = 1.0
+                    reset_pre_sleep_s = 0.8
                     reset_attempt = 0
 
                     while reset_attempt < reset_max_attempts and not events["stop_recording"]:
                         reset_attempt += 1
                         try:
+                            freeze_robot_before_reset(robot, freeze_time_s=reset_pre_freeze_s, hold_hz=10.0)
+                            if reset_pre_sleep_s > 0:
+                                time.sleep(reset_pre_sleep_s)
+
                             # reset g1 robot
-                            if robot.name == "unitree_g1":
+                            if robot.name == "unitree_g1" or robot.name == "pika_follower":
                                 robot.reset()
 
                             events["exit_early"] = False

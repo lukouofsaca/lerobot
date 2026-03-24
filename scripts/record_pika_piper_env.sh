@@ -24,5 +24,6 @@ lerobot-record \
   --dataset.fps=15 \
   --dataset.repo_id=zhbs/pika_piper_pick_cube_mini_10eps \
   --dataset.num_episodes=10 \
+  --dataset.episode_time_s=20 \
   --dataset.single_task="Pick up the cube" \
   --dataset.push_to_hub=false
